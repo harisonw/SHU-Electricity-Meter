@@ -13,7 +13,7 @@ client. The client will display the bill. The client will send meter readings at
 connected concurrently to the server.
 
 The client must run without any input from a user and must be able to:
--Authenticate onto the server with a secure connection.
+-Authenticate onto the server with a secure connection
 -Generate realistic randomly spaced readings.
 -Send reading to the server.
 -Display error messages if there is a communication problem between it and the server.
