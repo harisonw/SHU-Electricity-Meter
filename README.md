@@ -13,24 +13,24 @@ client. The client will display the bill. The client will send meter readings at
 connected concurrently to the server.
 
 The client must run without any input from a user and must be able to:
- Authenticate onto the server with a secure connection.
- Generate realistic randomly spaced readings.
- Send reading to the server.
- Display error messages if there is a communication problem between it and the server.
- Display a live bill that updates when each reading is transmitted.
+-Authenticate onto the server with a secure connection.
+-Generate realistic randomly spaced readings.
+-Send reading to the server.
+-Display error messages if there is a communication problem between it and the server.
+-Display a live bill that updates when each reading is transmitted.
 
 The server must:
- Support multiple concurrent clients.
- Receive readings from each client.
- Store client details and readings.
- Calculate live bills and push them to clients.
- Log error messages if there is a communication problem between it and the server
- Push alerts to clients if there is a problem with the electricity grid.
+-Support multiple concurrent clients.
+-Receive readings from each client.
+-Store client details and readings.
+-Calculate live bills and push them to clients.
+-Log error messages if there is a communication problem between it and the server
+-Push alerts to clients if there is a problem with the electricity grid.
 
 Notes:
- You do not need to use a database. You may mock the database if you wish. When your system starts each
+-You do not need to use a database. You may mock the database if you wish. When your system starts each
 client should be associated with an existing set of readings.
- Your client can be a command line application a – it does not need to be a Web or desktop application.,
- Messages should be formatted using XML, JSON, or YAML.
- You must use a version control system such as Github. You will be asked to give a link to your shared Github
+-Your client can be a command line application a – it does not need to be a Web or desktop application.,
+-Messages should be formatted using XML, JSON, or YAML.
+-You must use a version control system such as Github. You will be asked to give a link to your shared Github
 repository and we will expect to see commits made by all members of the team
