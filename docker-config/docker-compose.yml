@@ -1,5 +1,6 @@
 version: "3.6"
 # https://docs.docker.com/compose/compose-file/
+# reference: https://jstobigdata.com/rabbitmq/install-and-setup-rabbitmq-server/ 
 
 services:
   rabbitmq:
