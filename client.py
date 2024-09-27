@@ -4,15 +4,57 @@ from datetime import datetime
 import customtkinter as ctk
 
 
-class SmartMeterUI(ctk.CTk):
-    def __init__(self):
-        super().__init__()
+class LoginFrame(ctk.CTkFrame):
+    def __init__(self, master, on_login_success):
+        super().__init__(master)
+        self.master = master
+        self.on_login_success = on_login_success  # Callback when login is successful
 
-        # Appearance and theme
-        self.title("Smart Meter Interface")
-        self.geometry("600x300")
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
+        self.grid_columnconfigure(0, weight=1)  # Center the login elements
+        self.grid_rowconfigure([0, 1, 2, 3], weight=1)
+
+        # Client ID Label and Entry
+        self.client_id_label = ctk.CTkLabel(self, text="Client ID:", font=("Arial", 14))
+        self.client_id_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="n")
+        self.client_id_entry = ctk.CTkEntry(
+            self, width=200, placeholder_text="Enter Client ID"
+        )
+        self.client_id_entry.grid(row=1, column=0, padx=20, pady=(0, 20))
+
+        # Password Label and Entry
+        self.password_label = ctk.CTkLabel(self, text="Password:", font=("Arial", 14))
+        self.password_label.grid(row=2, column=0, pady=(5, 5), padx=20, sticky="n")
+        self.password_entry = ctk.CTkEntry(
+            self, width=200, placeholder_text="Enter Password", show="*"
+        )
+        self.password_entry.grid(row=3, column=0, padx=20, pady=(0, 20))
+
+        # Login Button
+        self.login_button = ctk.CTkButton(
+            self, text="Login", command=self.attempt_login
+        )
+        self.login_button.grid(row=4, column=0, pady=20)
+
+    def attempt_login(self):
+        client_id = self.client_id_entry.get()
+        password = self.password_entry.get()
+
+        # Dummy logic for client ID and password validation
+        if client_id == "12345" and password == "password":
+            self.on_login_success()  # Call the function to open the main UI
+        else:
+            self.show_error("Invalid Client ID or Password")
+
+    def show_error(self, message):
+        error_label = ctk.CTkLabel(
+            self, text=message, font=("Arial", 12), text_color="red"
+        )
+        error_label.grid(row=5, column=0, pady=10)
+
+
+class SmartMeterUI(ctk.CTkFrame):  # Now SmartMeterUI is a Frame, not a CTk window
+    def __init__(self, master):
+        super().__init__(master, fg_color="grey14")  # Set the frame background color
 
         # Configure Grid layout
         self.grid_columnconfigure(0, weight=1)  # Create a single column
@@ -115,23 +157,49 @@ class SmartMeterUI(ctk.CTk):
         self.after(1000, self.update_time)  # Update every second
 
 
-# Main app with mock data
+class MainApp(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+
+        self.geometry("600x300")
+        self.title("Smart Meter Login")
+
+        # Display login frame first
+        self.login_frame = LoginFrame(self, self.open_main_ui)
+        self.login_frame.pack(fill="both", expand=True)
+
+    def open_main_ui(self):
+        # Destroy the login frame
+        self.login_frame.destroy()
+
+        # Show the SmartMeterUI in the same window
+        self.smart_meter_ui = SmartMeterUI(self)
+        self.smart_meter_ui.pack(fill="both", expand=True)
+
+
+# Main app with login and mock data
 if __name__ == "__main__":
-    app = SmartMeterUI()
+    app = MainApp()
 
-    # Simulate server status message
-    app.after(2000, lambda: app.update_connection_status("connected"))
-    app.after(8000, lambda: app.update_connection_status("error"))
+    # Simulate server status message and other mock data after login
+    def load_mock_data():
+        app.smart_meter_ui.after(
+            2000, lambda: app.smart_meter_ui.update_connection_status("connected")
+        )
+        app.smart_meter_ui.after(
+            8000, lambda: app.smart_meter_ui.update_connection_status("error")
+        )
+        app.smart_meter_ui.after(
+            3000, lambda: app.smart_meter_ui.update_main_display("£6.84", "54.63 kWh")
+        )
+        app.smart_meter_ui.after(
+            5000,
+            lambda: app.smart_meter_ui.update_notice_message(
+                "Alert: Possible electricity grid problem detected."
+            ),
+        )
 
-    # Simulate main display data
-    app.after(3000, lambda: app.update_main_display("£6.84", "54.63 kWh")),
-
-    # Simulate notice message
-    app.after(
-        5000,
-        lambda: app.update_notice_message(
-            "Alert: Possible electricity grid problem detected."
-        ),
-    )
+    # Load the mock data when the main UI opens
+    app.bind("<Map>", lambda event: load_mock_data())
 
     app.mainloop()
