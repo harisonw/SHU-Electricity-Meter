@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.7.0 <0.9.0;
+pragma solidity >= 0.4.16 < 0.9.0;
 
-contract Hero{
-    address owner;
-    string hero;
-    constructor(string memory _hero)
+contract ElectricityMeterReading
+
+{
+
+    uint public setData;
+    function set(uint x) public
+
     {
-        owner=msg.sender;
-        hero=_hero;
+
+        setData = x;
+
     }
-    
-    function setHero(string memory _hero)public
-    {
-        hero =_hero;
+
+    function get(
+
+    ) public view returns (uint) {
+
+        return setData;
+
     }
-    function getHero() public view returns(string memory)
-    {
-        return hero;
-    }
-    
+
 }
