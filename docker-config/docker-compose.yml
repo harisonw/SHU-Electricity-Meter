@@ -20,6 +20,22 @@ services:
       RABBITMQ_DEFAULT_PASS: "guest"
     networks:
       - network
+
+  ganache:
+    image: trufflesuite/ganache-cli
+    ports:
+      - '8545:8545'
+    command: >
+      ganache-cli --host 0.0.0.0 --port 8545
+      --accounts 10
+      --defaultBalanceEther 1000
+      --deterministic
+      --acctKeys /data/ganache-accounts.json
+    volumes:
+      - ./ganache-data:/data
+    networks:
+      - network
+
 networks:
   # Declare our private network.  We must declare one for the magic
   # Docker DNS to work, but otherwise its default settings are fine.
