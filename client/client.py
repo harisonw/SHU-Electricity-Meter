@@ -1,7 +1,118 @@
-import random
+"""
+Reference: https://www.rabbitmq.com/tutorials/tutorial-six-python 
+"""
+import pika
+import json
+import uuid
+import time
 from datetime import datetime
+import random
+import threading
 
 import customtkinter as ctk
+
+# To run rabbit mq:
+# 1. ran the cmd: docker-compose up
+# 2. login using the following credentials guest/guest on the port http://localhost:15672
+
+class SmartMeterClient:
+    def __init__(self, app):
+        self.connection = None
+        self.channel = None
+        self.response = None
+        self.corr_id = None
+        self.reading = 0.0
+        # update UI
+        self.app = app
+
+        # check connection to the server initially and periodically
+        self.connect_to_server()
+        connection_thread = threading.Thread(target=self.check_connection_status, daemon=True)
+        connection_thread.start() 
+
+    def connect_to_server(self):
+        try:
+            self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+            self.channel = self.connection.channel()
+
+            self.channel.basic_consume(
+                queue="amq.rabbitmq.reply-to",
+                on_message_callback=self.on_response,
+                auto_ack=True
+            )
+
+            self.app.update_connection_status("connected")
+
+        except pika.exceptions.AMQPConnectionError as e:
+            print(f"Error connecting to RabbitMQ: {e}")
+            self.app.update_connection_status("error")
+
+    def check_connection_status(self):
+        while True:
+            # if connection is set to none or connection has been closed then status changed to error
+            if self.connection is None or self.connection.is_closed:
+                self.app.update_connection_status("error")
+                # and try to reconnect
+                self.connect_to_server()
+            time.sleep(5)
+
+    def on_response(self, ch, method, props, body):
+            if self.corr_id == props.correlation_id:
+                self.response = body
+
+    @staticmethod
+    def generate_meter_reading(reading_id, reading):
+        return {
+            "id": reading_id,
+            "user_email": "shu@example.com",
+            "meter_reading": reading,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    #sends meter reading
+    def send_meter_reading(self, reading_data):
+        self.response = None
+        self.corr_id = str(uuid.uuid4())
+
+        #publishes the rpc request to the server
+        self.channel.basic_publish(
+            exchange='',
+            routing_key='rpc_queue',
+            properties=pika.BasicProperties(
+                reply_to="amq.rabbitmq.reply-to",
+                correlation_id=self.corr_id,
+            ),
+            body=json.dumps(reading_data)
+        )
+
+        # waits for the response
+        while self.response is None:
+            self.connection.process_data_events()
+
+        return self.response      
+    
+    def update_meter_readings(self, app):
+        # random increase in reading
+        increase = random.uniform(1.0, 5.0)  
+        self.reading += increase
+
+        reading_data = self.generate_meter_reading(1, self.reading)
+        print(f"Meter reading sent: {reading_data} kWh")
+        updated_price = self.send_meter_reading(reading_data)
+
+        #decode from bytes to string and then float for correct format
+        updated_price = updated_price.decode()  
+        updated_price = float(updated_price) 
+
+        print(f"Updated Price: £{updated_price:.2f}")
+        app.update_main_display(f"£{updated_price:.2f}", f"{self.reading:.2f} kWh")
+
+    def start_meter_updater(self, app):
+        while True:
+            wait_time = random.randint(15, 60)
+            print(f"Waiting {wait_time} seconds to send...")
+            time.sleep(wait_time)
+            self.update_meter_readings(app)
 
 
 class SmartMeterUI(ctk.CTk):
@@ -19,6 +130,16 @@ class SmartMeterUI(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)  # Server Connection status section
         self.grid_rowconfigure(1, weight=3)  # Main display
         self.grid_rowconfigure(2, weight=1)  # Outage Notice section
+
+        # UI elements initialization
+        self.connection_status_frame = None
+        self.connection_status_label = None
+        self.time_label = None
+        self.middle_frame = None
+        self.price_label = None
+        self.usage_label = None
+        self.notice_frame = None
+        self.notice_label = None
 
         self.create_widgets()
 
@@ -115,23 +236,13 @@ class SmartMeterUI(ctk.CTk):
         self.after(1000, self.update_time)  # Update every second
 
 
-# Main app with mock data
 if __name__ == "__main__":
     app = SmartMeterUI()
 
-    # Simulate server status message
-    app.after(2000, lambda: app.update_connection_status("connected"))
-    app.after(8000, lambda: app.update_connection_status("error"))
+    client = SmartMeterClient(app)
 
-    # Simulate main display data
-    app.after(3000, lambda: app.update_main_display("£6.84", "54.63 kWh")),
-
-    # Simulate notice message
-    app.after(
-        5000,
-        lambda: app.update_notice_message(
-            "Alert: Possible electricity grid problem detected."
-        ),
-    )
+    #start meter reading updates in a separate thread
+    reading_thread = threading.Thread(target=client.start_meter_updater, args=(app,), daemon=True)
+    reading_thread.start()
 
     app.mainloop()
