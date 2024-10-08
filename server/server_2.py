@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+from datetime import datetime, timedelta
 
 import pika
 
@@ -27,7 +28,7 @@ def on_request(ch, method, properties, body):
     try:
         message = json.loads(body)
         meter_reading = float(message.get("meter_reading"))
-    except (ValueError, json.JSONDecodeError) as e:
+    except Exception as e:
         logging.error("Invalid meter reading received: %s, Error: %s", body, str(e))
         # Remove bad message from queue
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -39,7 +40,22 @@ def on_request(ch, method, properties, body):
 
     # TODO: Integrate with the blockchain
 
-    # TODO: Don't bother to send response back if time is past the request.timestamp + TIMEOUT_DURATION (10secs)
+    TIMEOUT_SECONDS = 10
+    try:
+        timestamp_str = message.get("timestamp")
+        # Convert the ISO timestamp string to a datetime object so we can add 10 seconds to it
+        timestamp = datetime.fromisoformat(timestamp_str)
+        if datetime.now() > timestamp + timedelta(seconds=10):
+            logging.error("Request was stale, not sending response")
+            ch.basic_ack(delivery_tag=method.delivery_tag)  # Remove the message
+            return
+    except Exception as e:
+        logging.error(
+            "Invalid timestamp received: %s, Error: %s", timestamp_str, str(e)
+        )
+        # Remove bad message from queue
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        return
     # Send the response back using the reply_to and correlation_id
     ch.basic_publish(
         exchange="",
