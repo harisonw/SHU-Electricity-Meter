@@ -19,7 +19,7 @@ class SmartMeterUI(ctk.CTk):
 
         # Appearance and theme
         self.title("Smart Meter Interface")
-        self.geometry("600x300")
+        self.geometry("650x300")
         # Use native system dark / light mode
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
@@ -187,12 +187,12 @@ class SmartMeterClient:
 
         start_time = time.time()  # Record the start time
         # Set the timeout duration in seconds, must be less than MIN_WAIT
-        TIMEOUT_DURATION = 10
+        TIMEOUT_SECONDS = 10
 
         # * Wait for the response, blocking until the response is received or a timeout, so must be ran in a separate thread
         while self.response is None:
             self.connection.process_data_events()
-            if time.time() - start_time > TIMEOUT_DURATION:
+            if time.time() - start_time > TIMEOUT_SECONDS:
                 return "timeout"
 
         return self.response.decode("utf-8")  # Return the response as a string
@@ -237,8 +237,8 @@ class SmartMeterClient:
             app.update_main_display(f"£{updated_price}", f"{self.reading:.2f} kWh")
 
     def start_meter_updater(self, app):
-        MIN_WAIT = 3  # Must be greater than TIMEOUT_DURATION
-        MAX_WAIT = 5
+        MIN_WAIT = 15  # Must be greater than TIMEOUT_SECONDS
+        MAX_WAIT = 60
 
         while True:
             wait_time = random.randint(MIN_WAIT, MAX_WAIT)
