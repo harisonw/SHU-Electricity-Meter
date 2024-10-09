@@ -237,8 +237,8 @@ class SmartMeterClient:
             app.update_main_display(f"£{updated_price}", f"{self.reading:.2f} kWh")
 
     def start_meter_updater(self, app):
-        MIN_WAIT = 3  # Must be greater than TIMEOUT_DURATION
-        MAX_WAIT = 5
+        MIN_WAIT = 15  # Must be greater than TIMEOUT_DURATION
+        MAX_WAIT = 60
 
         while True:
             wait_time = random.randint(MIN_WAIT, MAX_WAIT)
