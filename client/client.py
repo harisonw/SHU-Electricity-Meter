@@ -22,6 +22,8 @@ class SmartMeterClient:
         self.response = None
         self.corr_id = None
         self.reading = 0.0
+        self.reading_id = str(uuid.uuid4())
+        self.user_email = str(uuid.uuid4()) + "@gmail.com"
         # update UI
         self.app = app
 
@@ -56,16 +58,21 @@ class SmartMeterClient:
                 self.connect_to_server()
             time.sleep(5)
 
+    def close(self):
+        if self.is_connected():
+            self.connection.close()
+            self.connection = None
+            print("Closed RabbitMQ connection")
+
     def on_response(self, ch, method, props, body):
             if self.corr_id == props.correlation_id:
                 self.response = body
 
-    @staticmethod
-    def generate_meter_reading(reading_id, reading):
+    def generate_meter_reading(self):
         return {
-            "id": reading_id,
-            "user_email": "shu@example.com",
-            "meter_reading": reading,
+            "id": self.reading_id,
+            "user_email": self.user_email,
+            "meter_reading": self.reading,
             "timestamp": datetime.now().isoformat(),
         }
 
@@ -83,20 +90,26 @@ class SmartMeterClient:
                 correlation_id=self.corr_id,
             ),
             body=json.dumps(reading_data)
-        )
+        )   
+
+        # timeout if no response from server
+        start_time = time.time()
+        timeout = 10
 
         # waits for the response
         while self.response is None:
             self.connection.process_data_events()
-
+            # if the difference between now time and starting time is greater than timeout (10 sec) it will return none and loop out
+            if time.time() - start_time > timeout:
+                print("Time out: No response!")
+                return None
         return self.response      
     
     def update_meter_readings(self, app):
         # random increase in reading
-        increase = random.uniform(1.0, 5.0)  
-        self.reading += increase
+        self.reading += random.uniform(1.0, 5.0)
 
-        reading_data = self.generate_meter_reading(1, self.reading)
+        reading_data = self.generate_meter_reading()
         print(f"Meter reading sent: {reading_data} kWh")
         updated_price = self.send_meter_reading(reading_data)
 
