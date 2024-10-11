@@ -1,3 +1,4 @@
+#few mocks before I had working code to test
 import unittest
 from unittest.mock import Mock
 
