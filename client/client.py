@@ -190,6 +190,7 @@ class SmartMeterClient:
         if self.corr_id == properties.correlation_id:
             self.response = body
 
+    @staticmethod
     def generate_meter_reading(reading_id, reading):
         return {
             "id": reading_id,
