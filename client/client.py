@@ -139,29 +139,57 @@ class SmartMeterClient:
     def __init__(self):
         # TODO: Add error handling for connection failure, + retry logic (on another thread)
         # into SelectConnection instead of BlockingConnection
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters("localhost")
-        )
-        self.channel = self.connection.channel()
-
-        # Set up a listener for direct reply-to using RPC (no need to declare a
-        # queue)
-        self.channel.basic_consume(
-            queue="amq.rabbitmq.reply-to",
-            on_message_callback=self.on_response,
-            auto_ack=True,
-        )
-
+        self.connection = None
+        self.channel = None
         self.response = None
         self.corr_id = None
         self.reading = 0.0  # TODO: Initial reading, need to populate this with a user's reading after user auth is implemented
         self.timeout_reading = None
 
+        # update UI
+        self.app = app
+
+         # check connection to the server initially and periodically
+        self.connect_to_server()
+        connection_thread = threading.Thread(target=self.check_connection_status, daemon=True)
+        connection_thread.start() 
+    
+    def connect_to_server(self):
+        try:
+            self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+            self.channel = self.connection.channel()
+
+            self.channel.basic_consume(
+                queue="amq.rabbitmq.reply-to",
+                on_message_callback=self.on_response,
+                auto_ack=True
+            )
+
+            self.app.update_connection_status("connected")
+
+        except pika.exceptions.AMQPConnectionError as e:
+            print(f"Error connecting to RabbitMQ: {e}")
+            self.app.update_connection_status("error")
+
+    def check_connection_status(self):
+        while True:
+            # if connection is set to none or connection has been closed then status changed to error
+            if self.connection is None or self.connection.is_closed:
+                self.app.update_connection_status("error")
+                # and try to reconnect
+                self.connect_to_server()
+            time.sleep(5)
+
+    def close(self):
+        if self.is_connected():
+            self.connection.close()
+            self.connection = None
+            print("Closed RabbitMQ connection")
+    
     def on_response(self, _ch, _method, properties, body):
         if self.corr_id == properties.correlation_id:
             self.response = body
 
-    @staticmethod
     def generate_meter_reading(reading_id, reading):
         return {
             "id": reading_id,
