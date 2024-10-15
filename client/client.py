@@ -235,7 +235,12 @@ class SmartMeterClient:
 
         # Send the meter reading to the server and receiving an updated price
         reading_data = self.generate_meter_reading(1, self.reading)
-        updated_price = self.send_meter_reading(reading_data)
+        
+        try:
+            updated_price = self.send_meter_reading(reading_data)
+        except Exception as e:
+            print(f"Error sending meter reading:")
+            updated_price = "timeout"
         print(f"Price: {updated_price}")
         if self.timeout_reading and updated_price == "timeout":
             price_text = app.price_label.cget("text")
