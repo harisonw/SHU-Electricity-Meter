@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >= 0.4.16 < 0.9.0;
 
-contract ElectricityMeterReading
-
-{
+contract ElectricityMeterReading{
 
 
     struct MeterReading{
         string uid; 
-        uint256 mtr_reading;
-        address addr;  
-    }
+        uint256 mtr_reading;    
+    } 
     
+    address public owner; 
+
+    modifier onlyOwner(){
+        require(msg.sender == owner, "Not Authorized");
+        _;
+    }
+
+    event MeterReadingSubmission(address addr, MeterReading mtr);
+    event GridAlert(string message); 
 
     mapping(address => MeterReading[]) private _meterReadings;
 
@@ -30,10 +36,14 @@ contract ElectricityMeterReading
         revert("Meter reading not found");
     }
 
+
     function storeMeterReading(string memory uid, uint mtr_reading) public returns (string memory){
-        MeterReading memory reading = MeterReading({uid: uid, mtr_reading: mtr_reading, addr: msg.sender });
+        MeterReading memory reading = MeterReading({uid: uid, mtr_reading: mtr_reading });
         _meterReadings[msg.sender].push(reading);
         return uid; 
     }
 
+    function sendGridAlert(string memory _message) public onlyOwner{
+        emit GridAlert(_message);
+    }
 }
