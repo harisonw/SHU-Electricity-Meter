@@ -28,12 +28,12 @@ if ! [ -x "$(command -v truffle)" ]; then
     echo "Truffle is not installed. Please install Truffle and try again."
     exit 1
 fi
-cd ./server/blockchain/
+
+cd ./blockchain/
 truffle migrate --reset
 check_success "Truffle migration failed."
-cd ../..
+cd ../server
 
-cd ./server
 echo "Starting Python server..."
 if [ ! -f server.py ]; then
     echo "server.py not found."
