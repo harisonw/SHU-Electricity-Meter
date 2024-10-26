@@ -14,4 +14,5 @@ if __name__ == '__main__':
     contract_instance = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
     while True: 
         send_alert(contract_instance)
+        print("Sending Alert")
         time.sleep(2)

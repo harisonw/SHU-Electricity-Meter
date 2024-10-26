@@ -40,17 +40,15 @@ contract ElectricityMeterReading{
         revert("Meter reading not found");
     }
 
-    function getMeterBill() public view returns (uint128){
-
+    function getMeterBill() public view returns (uint256){
+        return _bills[msg.sender];
     }
 
-
-    function storeMeterReading(string memory uid, uint mtr_reading) public returns (uint256){
+    function storeMeterReading(string memory uid, uint mtr_reading) public{
         MeterReading memory reading = MeterReading({uid: uid, mtr_reading: mtr_reading });
         _meterReadings[msg.sender].push(reading);
         emit MeterReadingSubmission(msg.sender, reading);
         _bills[msg.sender]+=mtr_reading*cost_per_kwh; 
-        return _bills[msg.sender]; 
     }
 
     function sendGridAlert(string memory _message) public{
