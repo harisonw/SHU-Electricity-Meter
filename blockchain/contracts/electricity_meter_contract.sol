@@ -10,6 +10,7 @@ contract ElectricityMeterReading{
     } 
     
     address public owner; 
+    uint128 private costPerUnit;
 
     modifier onlyOwner(){
         require(msg.sender == owner, "Not Authorized");
@@ -20,6 +21,9 @@ contract ElectricityMeterReading{
     event GridAlert(string message); 
 
     mapping(address => MeterReading[]) private _meterReadings;
+    mapping(address=>uint256) private _bills; 
+
+    uint256 private cost_per_kwh = 2; 
 
     function getMeterReadings() public view returns (MeterReading[] memory){
         return _meterReadings[msg.sender];
@@ -36,14 +40,20 @@ contract ElectricityMeterReading{
         revert("Meter reading not found");
     }
 
+    function getMeterBill() public view returns (uint128){
 
-    function storeMeterReading(string memory uid, uint mtr_reading) public returns (string memory){
-        MeterReading memory reading = MeterReading({uid: uid, mtr_reading: mtr_reading });
-        _meterReadings[msg.sender].push(reading);
-        return uid; 
     }
 
-    function sendGridAlert(string memory _message) public onlyOwner{
+
+    function storeMeterReading(string memory uid, uint mtr_reading) public returns (uint256){
+        MeterReading memory reading = MeterReading({uid: uid, mtr_reading: mtr_reading });
+        _meterReadings[msg.sender].push(reading);
+        emit MeterReadingSubmission(msg.sender, reading);
+        _bills[msg.sender]+=mtr_reading*cost_per_kwh; 
+        return _bills[msg.sender]; 
+    }
+
+    function sendGridAlert(string memory _message) public{
         emit GridAlert(_message);
     }
 }

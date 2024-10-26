@@ -1,3 +1,7 @@
 {
+<<<<<<< HEAD
   "address": "0x67B5656d60a809915323Bf2C40A8bEF15A152e3e"
+=======
+  "address": "0x47a2Db5D68751EeAdFBC44851E84AcDB4F7299Cc"
+>>>>>>> 3867c86 (Logic for bills in solidity)
 }

@@ -7,7 +7,7 @@ COTNRACT_ADDRESS_FILE_NAME = 'deployment_config.json'
 CONTRACT_TRUFFLE_COMPILE_DIR = 'blockchain/build/contracts'
 GANACHE_DATA_DIR_PATH = 'docker-config/ganache-data/'
 GANACHE_ACCOUNTS_FILE = 'ganache-accounts.json'
-BLOCKCHAIN_BASE_DIR = '../blockchain'
+BLOCKCHAIN_BASE_DIR = 'blockchain'
 BLOCKCHAIN_URL = 'http://127.0.0.1:8545'
 PARENT_DIR = str(Path(__file__).parents[1])
 CONTRACT_COMPILE_FILE_PATH = os.path.join(PARENT_DIR, CONTRACT_TRUFFLE_COMPILE_DIR, COMPILED_CONTRACT_FILE_NAME)
@@ -25,7 +25,5 @@ def load_json_file(file_path):
 CONTRACT_ABI = load_json_file(CONTRACT_COMPILE_FILE_PATH)['abi']
 CONTRACT_ADDRESS = load_json_file(CONTRACT_ADDRESS_FILE_PATH)['address']
 ACCOUNTS_DATA = load_json_file(GANACHE_ACCOUNTS_FILE_PATH)
-
-# Get the first address and private key
 first_address = list(ACCOUNTS_DATA['private_keys'].keys())[0]
 first_private_key = ACCOUNTS_DATA['private_keys'][first_address]
