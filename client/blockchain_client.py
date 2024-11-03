@@ -39,6 +39,28 @@ def get_contract():
     except Exception as e: 
         raise e
 
+class BlockchainGetBill:
+    def __init__(self, private_key, w3, contract): 
+        self.w3 = w3
+        self.private_key = private_key
+        self.contract = contract 
+        self.acc = Account.from_key(self.private_key)
+    
+    async def poll_bill(self):
+        while True:
+            bill = self.contract.functions.getMeterBill().call({"from": self.acc.address})
+            meter_readings = self.contract.functions.getMeterReadings.call({"from": self.acc.address})
+            print(f"Updated Bill for {self.acc.address}: {bill}")
+            print(f"Meter Readings: {meter_readings}")
+            #polling every 5 seconds
+            await asyncio.sleep(5)
+
+    def start_bill_monitor(self):
+        try:
+            asyncio.run(self.poll_bill())
+        except KeyboardInterrupt:
+            print("Stopping billing polling")
+        
 
 class BlockchainStoreReading: 
 
@@ -60,11 +82,8 @@ class BlockchainStoreReading:
         try: 
             reading = BlockchainStoreReading.generate_reading()
             uuid_ = uuid4()
+            #reading being stored with a transaction id
             tx = self.contract.functions.storeMeterReading(uuid_.__str__(), reading).transact({"from": self.acc.address})
-            bill = self.contract.functions.getMeterBill().call({"from": self.acc.address})
-            meter_readings = self.contract.functions.getMeterReadings.call({"from": self.acc.address})
-            print(f"Current Bill is: {bill}")
-            print(f"Meter Readings: {meter_readings}")
         except Exception as e: 
             raise e 
 
@@ -78,7 +97,7 @@ class GenerateReadings:
     
     async def create_store_readings(self): 
         while True: 
-            delay_interval = random.randint(2,5)
+            delay_interval = random.randint(5,10)
             await self.store_readings_obj.store_reading()
             await asyncio.sleep(delay_interval)
 
@@ -110,18 +129,16 @@ class BlockchainGetAlerts:
         except KeyboardInterrupt:
             pass
 
-def process():
-    while True: 
-        print("test")
-        time.sleep(1)   
-
 
 if __name__ == "__main__":
     client_address = Web3.to_checksum_address(list(ACCOUNTS_DATA['addresses'])[0])    
     w3, contract = get_contract()
     alerts_obj = BlockchainGetAlerts(w3, contract)
     readings_obj = GenerateReadings(first_private_key, w3, contract)
+    bill_obj = BlockchainGetBill(first_private_key, w3, contract)
     alert_thread = threading.Thread(target=alerts_obj.start_grid_alert_monitor)
     readings_thread = threading.Thread(target=readings_obj.start_sending_readings)
+    bill_thread = threading.Thread(target=bill_obj.start_bill_monitor)
     alert_thread.start()
     readings_thread.start()
+    bill_thread.start()
