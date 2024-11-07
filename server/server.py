@@ -1,4 +1,4 @@
-from rabbit_mq import * 
+
 from web3 import Web3
 from parameters import CONTRACT_ABI, CONTRACT_ADDRESS, ACCOUNTS_DATA, BLOCKCHAIN_URL
 from uuid import uuid4

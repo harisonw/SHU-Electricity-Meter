@@ -23,11 +23,12 @@ import asyncio
 from web3 import Web3
 import asyncio
 from web3 import Web3
-from parameters import CONTRACT_ABI, CONTRACT_ADDRESS, ACCOUNTS_DATA, BLOCKCHAIN_URL, first_address, first_private_key
+from client.parameters import CONTRACT_ABI, CONTRACT_ADDRESS, ACCOUNTS_DATA, BLOCKCHAIN_URL, first_address, first_private_key
 from uuid import uuid4
 from multiprocessing import Process
 import time 
 from eth_account import Account
+#run python -m client.blockchain_client
 
 
 
@@ -61,8 +62,11 @@ class BlockchainStoreReading:
             reading = BlockchainStoreReading.generate_reading()
             uuid_ = uuid4()
             tx = self.contract.functions.storeMeterReading(uuid_.__str__(), reading).transact({"from": self.acc.address})
+            
+            print("Calling getMeterReadings()...")  #mahit debug
+            
             bill = self.contract.functions.getMeterBill().call({"from": self.acc.address})
-            meter_readings = self.contract.functions.getMeterReadings.call({"from": self.acc.address})
+            meter_readings = self.contract.functions.getMeterReadings().call({"from": self.acc.address})
             print(f"Current Bill is: {bill}")
             print(f"Meter Readings: {meter_readings}")
         except Exception as e: 
