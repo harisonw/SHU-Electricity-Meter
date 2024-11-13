@@ -29,13 +29,31 @@ import json
 import customtkinter as ctk
 
 
-def get_contract(): 
+def get_contract(app): 
     try:
         w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL))
+        if not w3.is_connected:
+            app.update_connection_status("error")
+            return None, None
         contract_instance = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
+        app.update_connection_status("connected")
         return w3, contract_instance 
     except Exception as e: 
+        app.update_connection_status("error")
         raise e
+    
+class BlockchainConnectionMonitor:
+    def __init__(self, app, w3):
+        self.app = app
+        self.w3 = w3
+
+    def check_connection(self):
+        while True:
+            if not self.w3.is_connected():
+                self.app.update_connection_status("error")
+            else:
+                self.app.update_connection_status("connected")
+            time.sleep(5) 
 
 class BlockchainGetBill:
     def __init__(self, private_key, w3, contract, ui_callback): 
@@ -253,20 +271,24 @@ class SmartMeterUI(ctk.CTk):
         self.after(1000, self.update_time)  # Set to update every second
 
 if __name__ == "__main__":
-    client_address = Web3.to_checksum_address(list(ACCOUNTS_DATA['addresses'])[0])    
-    w3, contract = get_contract()
-    app = SmartMeterUI()
+    client_address = Web3.to_checksum_address(list(ACCOUNTS_DATA['addresses'])[0])   
+    app = SmartMeterUI() 
+    w3, contract = get_contract(app)
 
-    alerts_obj = BlockchainGetAlerts(w3, contract,app)
-    readings_obj = GenerateReadings(first_private_key, w3, contract)
-    bill_obj = BlockchainGetBill(first_private_key, w3, contract, app)
+    if w3 and contract:
+        alerts_obj = BlockchainGetAlerts(w3, contract,app)
+        readings_obj = GenerateReadings(first_private_key, w3, contract)
+        bill_obj = BlockchainGetBill(first_private_key, w3, contract, app)
+        connection_monitor = BlockchainConnectionMonitor(app, w3)
 
-    alert_thread = threading.Thread(target=alerts_obj.start_grid_alert_monitor)
-    readings_thread = threading.Thread(target=readings_obj.start_sending_readings)
-    bill_thread = threading.Thread(target=bill_obj.start_bill_monitor)
+        alert_thread = threading.Thread(target=alerts_obj.start_grid_alert_monitor)
+        readings_thread = threading.Thread(target=readings_obj.start_sending_readings)
+        bill_thread = threading.Thread(target=bill_obj.start_bill_monitor)
+        connection_monitor_thread = threading.Thread(target=connection_monitor.check_connection)
 
-    alert_thread.start()
-    readings_thread.start()
-    bill_thread.start()
+        alert_thread.start()
+        readings_thread.start()
+        bill_thread.start()
+        connection_monitor_thread.start()
 
     app.mainloop()
