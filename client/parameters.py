@@ -27,3 +27,8 @@ CONTRACT_ADDRESS = load_json_file(CONTRACT_ADDRESS_FILE_PATH)['address']
 ACCOUNTS_DATA = load_json_file(GANACHE_ACCOUNTS_FILE_PATH)
 first_address = list(ACCOUNTS_DATA['private_keys'].keys())[0]
 first_private_key = ACCOUNTS_DATA['private_keys'][first_address]
+
+def get_account_pairs():
+    return list(ACCOUNTS_DATA['private_keys'].items())
+
+all_account_pairs = get_account_pairs()
