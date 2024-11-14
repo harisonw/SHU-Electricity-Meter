@@ -23,7 +23,8 @@ contract ElectricityMeterReading{
     mapping(address => MeterReading[]) private _meterReadings;
     mapping(address=>uint256) private _bills; 
 
-    uint256 private cost_per_kwh = 2; 
+    // Cost per kWh in GBP set to the energy price cap for electricity in the UK of 24.50 pence as of October 1, 2024.
+    uint256 private cost_per_kwh_milli = 245; // Represents 0.245 when divided by 1000 as Solidity doesn't support floating point numbers.
 
     function getMeterReadings() public view returns (MeterReading[] memory){
         return _meterReadings[msg.sender];
@@ -48,7 +49,9 @@ contract ElectricityMeterReading{
         MeterReading memory reading = MeterReading({uid: uid, mtr_reading: mtr_reading });
         _meterReadings[msg.sender].push(reading);
         emit MeterReadingSubmission(msg.sender, reading);
-        _bills[msg.sender]+=mtr_reading*cost_per_kwh; 
+
+        // Multiply by cost per kWh in milli-units, then divide by 1000 for the cost in GBP.
+        _bills[msg.sender]+= (mtr_reading * cost_per_kwh_milli) / 1000;
     }
 
     function sendGridAlert(string memory _message) public{
