@@ -23,7 +23,7 @@ contract ElectricityMeterReading{
     mapping(address => MeterReading[]) private _meterReadings;
     mapping(address=>uint256) private _bills; 
 
-    uint256 private cost_per_kwh = 2; 
+    uint256 private cost_per_kwh = 1; 
 
     function getMeterReadings() public view returns (MeterReading[] memory){
         return _meterReadings[msg.sender];
