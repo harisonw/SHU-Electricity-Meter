@@ -26,6 +26,7 @@ from multiprocessing import Process
 import time 
 from eth_account import Account
 import json
+import sys
 import customtkinter as ctk
 
 
@@ -271,14 +272,15 @@ class SmartMeterUI(ctk.CTk):
         self.after(1000, self.update_time)  # Set to update every second
 
 if __name__ == "__main__":
-    client_address = Web3.to_checksum_address(list(ACCOUNTS_DATA['addresses'])[0])   
+    client_number = int(sys.argv[1])
+    private_key = list(ACCOUNTS_DATA['private_keys'].values())[client_number]
     app = SmartMeterUI() 
     w3, contract = get_contract(app)
 
     if w3 and contract:
         alerts_obj = BlockchainGetAlerts(w3, contract,app)
-        readings_obj = GenerateReadings(first_private_key, w3, contract)
-        bill_obj = BlockchainGetBill(first_private_key, w3, contract, app)
+        readings_obj = GenerateReadings(private_key, w3, contract)
+        bill_obj = BlockchainGetBill(private_key, w3, contract, app)
         connection_monitor = BlockchainConnectionMonitor(app, w3)
 
         alert_thread = threading.Thread(target=alerts_obj.start_grid_alert_monitor)
