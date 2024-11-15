@@ -26,7 +26,6 @@ contract ElectricityMeterReading {
     uint256 private constant SCALING_FACTOR = 1000; // Scaling factor to handle 3 decimal places
 
     function getMeterReadings() public view returns (MeterReading[] memory) {
-
         uint length = _meterReadings[msg.sender].length;
         MeterReading[] memory readings = new MeterReading[](length); 
         for(uint i = 0; i<length; i++){
