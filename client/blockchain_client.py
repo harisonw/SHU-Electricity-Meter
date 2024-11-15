@@ -32,7 +32,7 @@ import customtkinter as ctk
 
 def get_contract(app): 
     try:
-        w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL))
+        w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL, request_kwargs={'timeout': 60}))
         if not w3.is_connected:
             app.update_connection_status("error")
             return None, None
@@ -66,10 +66,10 @@ class BlockchainGetBill:
     
     async def poll_bill(self):
         while True:
-            bill = self.contract.functions.getMeterBill().call({"from": self.acc.address})
+            bill = self.contract.functions.getMeterBill().call({"from": self.acc.address})/100
             meter_readings = self.contract.functions.getMeterReadings.call({"from": self.acc.address})
             total_usage = sum(reading[1] for reading in meter_readings)
-            print(bill,meter_readings)
+            print(bill)
             self.ui_callback.update_main_display(f"£{bill}", f"{total_usage} kWh") 
             #polling every 5 seconds
             await asyncio.sleep(5)
@@ -99,7 +99,7 @@ class BlockchainStoreReading:
     
     async def store_reading(self): 
         try: 
-            reading = BlockchainStoreReading.generate_reading()
+            reading = BlockchainStoreReading.generate_reading() * 1000
             uuid_ = uuid4()
             #reading being stored with a transaction id
             tx = self.contract.functions.storeMeterReading(uuid_.__str__(), reading).transact({"from": self.acc.address})
