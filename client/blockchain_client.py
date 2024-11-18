@@ -14,35 +14,45 @@ Integrate with Client Logic:
 
 Reference link: https://medium.com/@0xCodeCharmer/interacting-with-smart-contracts-with-web3-py-9fee1a4274ec
 """
-import threading 
+import asyncio
+import json
+import logging
 import random
+import sys
+import threading
 import time
 from datetime import datetime
-import asyncio
-from web3 import Web3
-from parameters import CONTRACT_ABI, CONTRACT_ADDRESS, ACCOUNTS_DATA, BLOCKCHAIN_URL, first_address, first_private_key, all_account_pairs
-from uuid import uuid4
 from multiprocessing import Process
-import time 
-from eth_account import Account
-import json
-import sys
+from uuid import uuid4
+
 import customtkinter as ctk
+from eth_account import Account
+from parameters import (
+    ACCOUNTS_DATA,
+    BLOCKCHAIN_URL,
+    CONTRACT_ABI,
+    CONTRACT_ADDRESS,
+    all_account_pairs,
+    first_address,
+    first_private_key,
+)
+from web3 import Web3
 
 
-def get_contract(app): 
+def get_contract(app):
     try:
-        w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL, request_kwargs={'timeout': 60}))
+        w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL, request_kwargs={"timeout": 60}))
         if not w3.is_connected:
             app.update_connection_status("error")
             return None, None
         contract_instance = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
         app.update_connection_status("connected")
-        return w3, contract_instance 
-    except Exception as e: 
+        return w3, contract_instance
+    except Exception as e:
         app.update_connection_status("error")
         raise e
-    
+
+
 class BlockchainConnectionMonitor:
     def __init__(self, app, w3):
         self.app = app
@@ -54,97 +64,180 @@ class BlockchainConnectionMonitor:
                 self.app.update_connection_status("error")
             else:
                 self.app.update_connection_status("connected")
-            time.sleep(5) 
+            time.sleep(5)
+
 
 class BlockchainGetBill:
-    def __init__(self, private_key, w3, contract, ui_callback): 
+    def __init__(self, private_key, w3, contract, ui_callback):
         self.w3 = w3
         self.private_key = private_key
-        self.contract = contract 
+        self.contract = contract
         self.acc = Account.from_key(self.private_key)
         self.ui_callback = ui_callback
-    
+
     async def poll_bill(self):
+        total_usage = None
         while True:
-            bill = self.contract.functions.getMeterBill().call({"from": self.acc.address})/100
-            meter_readings = self.contract.functions.getMeterReadings.call({"from": self.acc.address})
-            total_usage = sum(reading[1] for reading in meter_readings)
-            print(bill)
-            self.ui_callback.update_main_display(f"£{bill}", f"{total_usage} kWh") 
-            #polling every 5 seconds
-            await asyncio.sleep(5)
+            displayed_usage_text = app.usage_label.cget("text")
+            try:
+                displayed_usage = (
+                    displayed_usage_text.split(": ")[1].strip().split(" ")[0]
+                )
+                if displayed_usage == "xx.xx":
+                    displayed_usage = None
+                else:
+                    displayed_usage = float(displayed_usage)
+            except Exception as e:
+                logging.error(e)
+
+            if total_usage == None:
+                bill = (
+                    self.contract.functions.getMeterBill().call(
+                        {"from": self.acc.address}
+                    )
+                    / 100
+                )
+                meter_readings = self.contract.functions.getMeterReadings.call(
+                    {"from": self.acc.address}
+                )
+                total_usage = sum(reading[1] for reading in meter_readings)
+                logging.info(
+                    "Received Initial Bill: £%s @ Meter reading: %s kWh",
+                    bill,
+                    total_usage,
+                )
+                self.ui_callback.update_main_display(
+                    f"£{bill:.2f}", f"{total_usage:.2f} kWh"
+                )
+            elif total_usage != displayed_usage:
+                # Await for the blockchain to update the usage
+                while total_usage != displayed_usage:
+                    logging.info(
+                        "Total usage: %s, Displayed usage: %s",
+                        total_usage,
+                        displayed_usage,
+                    )
+                    meter_readings = self.contract.functions.getMeterReadings.call(
+                        {"from": self.acc.address}
+                    )
+                    total_usage = sum(reading[1] for reading in meter_readings)
+                    await asyncio.sleep(0.01)
+
+                bill = (
+                    self.contract.functions.getMeterBill().call(
+                        {"from": self.acc.address}
+                    )
+                    / 100
+                )
+                logging.info(
+                    "Received New Bill: £%s @ Meter reading: %s kWh", bill, total_usage
+                )
+                self.ui_callback.update_main_display(
+                    f"£{bill:.2f}", f"{total_usage:.2f} kWh"
+                )
+
+            # polling every 0.1 seconds
+            await asyncio.sleep(0.1)
 
     def start_bill_monitor(self):
         try:
             asyncio.run(self.poll_bill())
         except KeyboardInterrupt:
-            print("Stopping billing polling")
-        
+            logging.info("Stopping billing polling")
 
-class BlockchainStoreReading: 
 
-    def __init__(self, private_key, w3, contract): 
+class BlockchainStoreReading:
+
+    def __init__(self, private_key, w3, contract):
         try:
             self.private_key = private_key
             self.w3 = w3
-            self.contract = contract 
+            self.contract = contract
             self.acc = Account.from_key(self.private_key)
-        except Exception as e: 
-            raise e 
-        
-    @staticmethod
-    def generate_reading():
-        random_reading = random.randint(1, 10)
-        return random_reading
-    
-    async def store_reading(self): 
-        try: 
-            reading = BlockchainStoreReading.generate_reading() * 1000
+        except Exception as e:
+            raise e
+
+    async def store_reading(self, reading):
+        try:
+            reading = (
+                reading * 1000
+            )  # Using Scaled Interger to represent decimal reading
             uuid_ = uuid4()
-            #reading being stored with a transaction id
-            tx = self.contract.functions.storeMeterReading(uuid_.__str__(), reading).transact({"from": self.acc.address})
-        except Exception as e: 
-            raise e 
+            # reading being stored with a transaction id
+            tx = self.contract.functions.storeMeterReading(
+                uuid_.__str__(), reading
+            ).transact({"from": self.acc.address})
+            logging.info("Stored reading: %s with tx: %s", reading, tx.hex())
+        except Exception as e:
+            raise e
 
-class GenerateReadings: 
 
-    def __init__(self, private_key, w3, contract):
+class GenerateReadings:
+
+    def __init__(self, private_key, w3, contract, app):
         self.private_key = private_key
         self.w3 = w3
-        self.contract = contract 
+        self.contract = contract
         self.store_readings_obj = BlockchainStoreReading(private_key, w3, contract)
+        self.app = app
 
-    async def create_store_readings(self): 
-        while True: 
-            delay_interval = random.randint(5,10)
-            await self.store_readings_obj.store_reading()
+    @staticmethod
+    def generate_reading():
+        random_reading = random.randint(1, 10)  # TODO: Change to decimal reading
+        return random_reading
+
+    async def reading_generator(self):
+        MIN_WAIT = 5  # TODO: Change back to 15 and 60 when all testing done
+        MAX_WAIT = 10
+
+        while True:
+
+            delay_interval = random.randint(MIN_WAIT, MAX_WAIT)
             await asyncio.sleep(delay_interval)
 
-    def start_sending_readings(self):
-        try: 
-            asyncio.run(self.create_store_readings())
-        except Exception as e: 
-            raise e 
+            reading = self.generate_reading()
+            logging.info("Generated reading: %s", reading)
 
-class BlockchainGetAlerts: 
-    
-    def __init__(self, w3, contract,ui_callback): 
-        self.contract = contract 
+            # Populate the UI with new reading incase of connection loss with the blockchain
+            previous_price_text = app.price_label.cget("text")
+            previous_usage_text = app.usage_label.cget("text")
+            try:
+                previous_usage = float(
+                    previous_usage_text.split(": ")[1].strip().split(" ")[0]
+                )
+                new_usage = previous_usage + reading
+                app.update_main_display(previous_price_text, f"{new_usage:.2f} kWh")
+            except ValueError:
+                pass
+
+            asyncio.create_task(self.store_readings_obj.store_reading(reading))
+
+    def start_reading_generator(self):
+        try:
+            asyncio.run(self.reading_generator())
+        except Exception as e:
+            raise e
+
+
+class BlockchainGetAlerts:
+
+    def __init__(self, w3, contract, ui_callback):
+        self.contract = contract
         self.w3 = w3
         self.ui_callback = ui_callback
-    
+
     async def handle_grid_alert(self, event):
         alert_message = f"Alert from the grid: {event.args.message}"
         print(alert_message)
         self.ui_callback.update_notice_message(alert_message)
 
-    async def monitor_grid_alerts(self): 
-        event_filter = self.contract.events.GridAlert.create_filter(from_block='latest')
-        while True: 
+    async def monitor_grid_alerts(self):
+        event_filter = self.contract.events.GridAlert.create_filter(from_block="latest")
+        while True:
             for event in event_filter.get_new_entries():
                 await self.handle_grid_alert(event)
             await asyncio.sleep(2)
-    
+
     def start_grid_alert_monitor(self):
         try:
             asyncio.run(self.monitor_grid_alerts())
@@ -249,14 +342,20 @@ class SmartMeterUI(ctk.CTk):
             self.connection_status_label.configure(
                 text="Connected to server", text_color="green"
             )
+            self.price_label.configure(text_color="green")
+            self.is_connected = True
         if status == "error":
             self.connection_status_label.configure(
                 text="Error: Failed to connect to server. Retrying...",
                 text_color="gold",
             )
+            self.price_label.configure(text_color="gold")
 
     def update_main_display(self, price, usage):
         self.price_label.configure(text=f"{price}")
+        self.usage_label.configure(text=f"Used so far today: {usage}")
+
+    def update_main_usage(self, usage):
         self.usage_label.configure(text=f"Used so far today: {usage}")
 
     def update_notice_message(self, message):
@@ -271,22 +370,31 @@ class SmartMeterUI(ctk.CTk):
         self.time_label.configure(text=current_time)  # Update the time label
         self.after(1000, self.update_time)  # Set to update every second
 
+
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     client_number = int(sys.argv[1])
-    private_key = list(ACCOUNTS_DATA['private_keys'].values())[client_number]
-    app = SmartMeterUI() 
+    private_key = list(ACCOUNTS_DATA["private_keys"].values())[client_number]
+    app = SmartMeterUI()
     w3, contract = get_contract(app)
 
     if w3 and contract:
-        alerts_obj = BlockchainGetAlerts(w3, contract,app)
-        readings_obj = GenerateReadings(private_key, w3, contract)
+        alerts_obj = BlockchainGetAlerts(w3, contract, app)
+        readings_obj = GenerateReadings(private_key, w3, contract, app)
         bill_obj = BlockchainGetBill(private_key, w3, contract, app)
         connection_monitor = BlockchainConnectionMonitor(app, w3)
 
-        alert_thread = threading.Thread(target=alerts_obj.start_grid_alert_monitor)
-        readings_thread = threading.Thread(target=readings_obj.start_sending_readings)
-        bill_thread = threading.Thread(target=bill_obj.start_bill_monitor)
-        connection_monitor_thread = threading.Thread(target=connection_monitor.check_connection)
+        alert_thread = threading.Thread(
+            target=alerts_obj.start_grid_alert_monitor, daemon=True
+        )
+        readings_thread = threading.Thread(
+            target=readings_obj.start_reading_generator, daemon=True
+        )
+        bill_thread = threading.Thread(target=bill_obj.start_bill_monitor, daemon=True)
+        connection_monitor_thread = threading.Thread(
+            target=connection_monitor.check_connection, daemon=True
+        )
 
         alert_thread.start()
         readings_thread.start()

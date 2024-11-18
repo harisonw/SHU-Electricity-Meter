@@ -1,30 +1,10 @@
-version: "3.6"
 # https://docs.docker.com/compose/compose-file/
-# reference: https://jstobigdata.com/rabbitmq/install-and-setup-rabbitmq-server/ 
 
 services:
-  rabbitmq:
-    image: 'rabbitmq:3.13-management'
-    ports:
-      # The standard AMQP protocol port
-      - '5672:5672'
-      # HTTP management UI
-      - '15672:15672'
-    environment:
-      # The location of the RabbitMQ server.  "amqp" is the protocol;
-      # "rabbitmq" is the hostname.  Note that there is not a guarantee
-      # that the server will start first!  Telling the pika client library
-      # to try multiple times gets around this ordering issue.
-      AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
-      RABBITMQ_DEFAULT_USER: "guest"
-      RABBITMQ_DEFAULT_PASS: "guest"
-    networks:
-      - network
-
   ganache:
     image: trufflesuite/ganache-cli
     ports:
-      - '8545:8545'
+      - "8545:8545"
     command: >
       ganache-cli --host 0.0.0.0 --port 8545 
       --accounts 50
