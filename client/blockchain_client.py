@@ -41,7 +41,7 @@ from web3 import Web3
 
 def get_contract(app):
     try:
-        w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL))
+        w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL, request_kwargs={'timeout': 60}))
         if not w3.is_connected:
             app.update_connection_status("error")
             return None, None
@@ -82,7 +82,7 @@ class BlockchainGetBill:
             try:
                 displayed_usage = float(
                     displayed_usage_text.split(": ")[1].strip().split(" ")[0]
-                )
+                )/100
             except Exception:
                 pass
 
@@ -101,7 +101,7 @@ class BlockchainGetBill:
                 )
                 self.ui_callback.update_main_display(
                     f"£{bill:.2f}", f"{total_usage:.2f} kWh"
-                )
+                )/100
             elif total_usage != displayed_usage:
                 # Await for the blockchain to update the usage
                 while total_usage != displayed_usage:
@@ -141,9 +141,14 @@ class BlockchainStoreReading:
             self.acc = Account.from_key(self.private_key)
         except Exception as e:
             raise e
-
-    async def store_reading(self, reading):
-        try:
+        
+    @staticmethod
+    def generate_reading():
+        random_reading = random.randint(1, 10)*1000 # TODO: Change this
+        return random_reading
+    
+    async def store_reading(self, reading): 
+        try: 
             uuid_ = uuid4()
             # reading being stored with a transaction id
             tx = self.contract.functions.storeMeterReading(
