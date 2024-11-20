@@ -110,11 +110,13 @@ class SmartMeterUI(ctk.CTk):
             self.connection_status_label.configure(
                 text="Connected to server", text_color="green"
             )
+            self.price_label.configure(text_color="green")
         if status == "error":
             self.connection_status_label.configure(
                 text="Error: Failed to connect to server. Retrying...",
                 text_color="gold",
             )
+            self.price_label.configure(text_color="gold")
 
     def update_main_display(self, price, usage):
         self.price_label.configure(text=f"{price}")
