@@ -149,23 +149,25 @@ class SmartMeterClient:
         # update UI
         self.app = app
 
-         # check connection to the server initially and periodically
+        # check connection to the server initially and periodically
         self.connect_to_server()
-        connection_thread = threading.Thread(target=self.check_connection_status, daemon=True)
-        connection_thread.start() 
-    
+        connection_thread = threading.Thread(
+            target=self.check_connection_status, daemon=True
+        )
+        connection_thread.start()
+
     def connect_to_server(self):
         try:
-            self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+            self.connection = pika.BlockingConnection(
+                pika.ConnectionParameters("localhost")
+            )
             self.channel = self.connection.channel()
 
             self.channel.basic_consume(
                 queue="amq.rabbitmq.reply-to",
                 on_message_callback=self.on_response,
-                auto_ack=True
+                auto_ack=True,
             )
-
-            self.app.update_connection_status("connected")
 
         except pika.exceptions.AMQPConnectionError as e:
             print(f"Error connecting to RabbitMQ: {e}")
@@ -180,12 +182,6 @@ class SmartMeterClient:
                 self.connect_to_server()
             time.sleep(5)
 
-    def close(self):
-        if self.is_connected():
-            self.connection.close()
-            self.connection = None
-            print("Closed RabbitMQ connection")
-    
     def on_response(self, _ch, _method, properties, body):
         if self.corr_id == properties.correlation_id:
             self.response = body
@@ -235,7 +231,7 @@ class SmartMeterClient:
 
         # Send the meter reading to the server and receiving an updated price
         reading_data = self.generate_meter_reading(1, self.reading)
-        
+
         try:
             updated_price = self.send_meter_reading(reading_data)
         except Exception as e:
