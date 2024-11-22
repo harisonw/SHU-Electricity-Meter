@@ -200,6 +200,10 @@ class SmartMeterClient:
         }
 
     def send_meter_reading(self, reading_data):
+        if not self.is_valid_reading(reading_data):
+            print("Invalid reading data, not sending to server.")
+            return "invalid_data"
+        
         self.response = None
         self.corr_id = str(uuid.uuid4())  # Create a unique correlation ID
 
@@ -225,6 +229,21 @@ class SmartMeterClient:
                 return "timeout"
 
         return self.response.decode("utf-8")  # Return the response as a string
+    
+    def is_valid_reading(self, reading_data):
+        if "id" not in reading_data or not isinstance(reading_data["id"], int):
+            print("Invalid reading ID")
+            return False
+        if "user_email" not in reading_data or not isinstance(reading_data["user_email"], str):
+            print("Invalid user email")
+            return False
+        if "meter_reading" not in reading_data or not isinstance(reading_data["meter_reading"], (int, float)):
+            print("Invalid meter reading")
+            return False
+        if "timestamp" not in reading_data or not isinstance(reading_data["timestamp"], str):
+            print("Invalid timestamp")
+            return False
+        return True
 
     def update_meter_readings(self, app):
         MIN_INCREASE = 1.0  # TODO: Should these be moved to class attributes?
