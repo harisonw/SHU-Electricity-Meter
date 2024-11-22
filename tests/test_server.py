@@ -1,6 +1,6 @@
 import unittest, json , pika
 from unittest.mock import patch, Mock
-from server.server import calculate_bill, meter_request
+#from server.server import calculate_bill, meter_request
 #run test with = python -m unittest tests/test_server.py
 #python -m unittest discover -s tests
 

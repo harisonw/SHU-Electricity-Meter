@@ -138,7 +138,7 @@ class SmartMeterUI(ctk.CTk):
 # TODO: Could do with decoupling this from the UI, perhaps by using a
 # controller class?
 class SmartMeterClient:
-    def __init__(self):
+    def __init__(self, app=None):
         # TODO: Add error handling for connection failure, + retry logic (on another thread)
         # into SelectConnection instead of BlockingConnection
         self.connection = None
@@ -152,13 +152,15 @@ class SmartMeterClient:
         self.app = app
 
         # check connection to the server initially and periodically
-        self.connect_to_server()
-        connection_thread = threading.Thread(
-            target=self.check_connection_status, daemon=True
-        )
-        connection_thread.start()
+        if app is not None:
+            self.connect_to_server()
+            connection_thread = threading.Thread(
+                target=self.check_connection_status, daemon=True
+            )
+            connection_thread.start()
 
     def connect_to_server(self):
+        print("connect_to_server called")
         try:
             self.connection = pika.BlockingConnection(
                 pika.ConnectionParameters("localhost")
