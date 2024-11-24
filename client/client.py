@@ -147,6 +147,7 @@ class SmartMeterClient:
         self.corr_id = None
         self.reading = 0.0  # TODO: Initial reading, need to populate this with a user's reading after user auth is implemented
         self.timeout_reading = None
+        self.last_usage_alert_time = time.time()
 
         # update UI
         self.app = app
@@ -240,15 +241,20 @@ class SmartMeterClient:
             print(f"Error sending meter reading:")
             updated_price = "timeout"
         print(f"Price: {updated_price}")
+
+        current_time = time.time() 
+
         if self.timeout_reading and updated_price == "timeout":
             price_text = app.price_label.cget("text")
             app.update_main_display(price_text, f"{self.reading:.2f} kWh")
+            self.send_push_alert("Your meter reading could not be updated due to a timeout.", severity="warning")
         elif updated_price == "timeout":
             app.update_connection_status("error")
             # show last know price @ last known reading
             original_price = app.price_label.cget("text")
             # part of logic to show last known price/reading
             self.timeout_reading = self.reading - increase
+            self.send_push_alert("Connection to server lost - Retrying...", "error")
             if original_price in ("£x.xx", "£?.??"):
                 app.update_main_display("£?.??", f"{self.reading:.2f} kWh")
             else:
@@ -267,6 +273,17 @@ class SmartMeterClient:
 
             # Update the main display
             app.update_main_display(f"£{updated_price}", f"{self.reading:.2f} kWh")
+        
+        if current_time - self.last_usage_alert_time >= 40:
+            # every 40 seconds the usage alerts are checked and updated 
+            if self.reading > 100:
+                self.send_push_alert("High usage alert! Usage exceeded 100 kWh today.", "warning")
+            elif self.reading < 10:
+                self.send_push_alert("Low usage detected. Great savings today!", "info")
+            self.last_usage_alert_time = current_time
+        else:
+            self.send_push_alert(f"Meter reading updated: {self.reading:.2f} kWh.", "info")
+            
 
     def start_meter_updater(self, app):
         MIN_WAIT = 15  # Must be greater than TIMEOUT_SECONDS
@@ -282,18 +299,19 @@ class SmartMeterClient:
             )
             reading_thread.start()
 
+    def send_push_alert(self, message, severity="info"):
+        # pushes alerts and updates depending on severity
+        if severity == "info":
+            self.app.update_notice_message(message)
+        elif severity == "warning":
+            self.app.update_notice_message(message)
+        elif severity == "error":
+            self.app.update_notice_message(message)
 
-# Main app with mock data
+
+
 if __name__ == "__main__":
     app = SmartMeterUI()
-
-    # TODO: Simulate notice message, implement notice system
-    app.after(
-        5000,
-        lambda: app.update_notice_message(
-            "Alert: Possible electricity grid problem detected."
-        ),
-    )
 
     # Usage
     client = SmartMeterClient()
