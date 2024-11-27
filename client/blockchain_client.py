@@ -38,13 +38,16 @@ from .parameters import (
 )
 from web3 import Web3
 
+class BlockchainConnectionError(Exception):
+    pass
 
 def get_contract(app):
     try:
         w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL, request_kwargs={"timeout": 60}))
-        if not w3.is_connected:
+        if not w3.is_connected():
             app.update_connection_status("error")
-            return None, None
+            raise BlockchainConnectionError("Failed to connect to the blockchain")
+            #return None, None
         contract_instance = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
         app.update_connection_status("connected")
         return w3, contract_instance
