@@ -96,7 +96,7 @@ class BlockchainGetBill:
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100
+                    / 100 # Using Scaled Integer to represent decimal price
                 )
                 meter_readings = self.contract.functions.getMeterReadings.call(
                     {"from": self.acc.address}
@@ -128,7 +128,7 @@ class BlockchainGetBill:
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100
+                    / 100 # Using Scaled Integer to represent decimal price
                 )
                 logging.info(
                     "Received New Bill: £%s @ Meter reading: %s kWh", bill, total_usage
@@ -162,7 +162,7 @@ class BlockchainStoreReading:
         try:
             reading = (
                 reading * 1000
-            )  # Using Scaled Interger to represent decimal reading
+            )  # Using Scaled Integer to represent decimal reading
             uuid_ = uuid4()
             # reading being stored with a transaction id
             tx = self.contract.functions.storeMeterReading(
