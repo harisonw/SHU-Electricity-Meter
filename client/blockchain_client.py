@@ -184,7 +184,7 @@ class GenerateReadings:
 
     @staticmethod
     def generate_reading():
-        random_reading = random.randint(1, 10)  # TODO: Change to decimal reading
+        random_reading = random.uniform(0, 10)
         return random_reading
 
     async def reading_generator(self):
