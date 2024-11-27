@@ -27,7 +27,7 @@ from uuid import uuid4
 
 import customtkinter as ctk
 from eth_account import Account
-from parameters import (
+from .parameters import (
     ACCOUNTS_DATA,
     BLOCKCHAIN_URL,
     CONTRACT_ABI,
@@ -58,27 +58,29 @@ class BlockchainConnectionMonitor:
         self.app = app
         self.w3 = w3
 
-    def check_connection(self):
-        while True:
+    def check_connection(self, iterations=1):
+        while iterations > 0:
             if not self.w3.is_connected():
                 self.app.update_connection_status("error")
             else:
                 self.app.update_connection_status("connected")
             time.sleep(5)
+            iterations -= 1
 
 
 class BlockchainGetBill:
-    def __init__(self, private_key, w3, contract, ui_callback):
+    def __init__(self, private_key, w3, contract, ui_callback, app):
         self.w3 = w3
         self.private_key = private_key
         self.contract = contract
         self.acc = Account.from_key(self.private_key)
         self.ui_callback = ui_callback
-
+        self.app = app
+        
     async def poll_bill(self):
         total_usage = None
         while True:
-            displayed_usage_text = app.usage_label.cget("text")
+            displayed_usage_text = self.app.usage_label.cget("text")
             try:
                 displayed_usage = (
                     displayed_usage_text.split(": ")[1].strip().split(" ")[0]
