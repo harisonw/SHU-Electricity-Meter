@@ -15,6 +15,11 @@ services:
       - ./ganache-data:/data
     networks:
       - network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"       # Maximum size of log file
+        max-file: "3"
 
 networks:
   # Declare our private network.  We must declare one for the magic
