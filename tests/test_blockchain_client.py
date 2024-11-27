@@ -11,8 +11,6 @@ from client.blockchain_client import (get_contract,
 
 #run test with = python -m unittest tests/test_blockchain_client.py
 
-#TO DO: ERROR HANDLING AND DIFF METHODS
-
 class TestClientBlockchain(unittest.TestCase):
     
     @patch('client.blockchain_client.Web3')
@@ -149,11 +147,47 @@ class TestClientBlockchain(unittest.TestCase):
         monitor.check_connection(iterations=1)
 
         app.update_connection_status.assert_called_with("error")
-
-
-
-
         
+    @patch('client.blockchain_client.Web3')
+    def test_get_contract_failure(self, MockWeb3):
+        app = MagicMock()
+        mock_w3 = MagicMock()
+        mock_w3.is_connected.return_value = False
+
+        MockWeb3.return_value = mock_w3
+
+        with self.assertRaises(BlockchainConnectionError):  # Custom exception is expected
+            get_contract(app)
+
+        app.update_connection_status.assert_called_with("error")
     
+    def test_invalid_private_key(self):
+        private_key = "invalid_key"
+        mock_w3 = MagicMock()
+        mock_contract = MagicMock()
+
+        with self.assertRaises(ValueError):
+            BlockchainStoreReading(private_key, mock_w3, mock_contract)
+            
+    @patch('client.blockchain_client.BlockchainGetBill.poll_bill', new_callable=AsyncMock)
+    def test_poll_bill_failure(self, mock_poll_bill):
+        mock_w3 = MagicMock()
+        mock_contract = MagicMock()
+        mock_ui_callback = MagicMock()
+        mock_app = MagicMock()
+    
+        private_key = "0x" + "a" * 64
+        bill_instance = BlockchainGetBill(private_key, mock_w3, mock_contract, mock_ui_callback, mock_app)
+
+        async def mock_poll_bill_coroutine():
+            raise Exception("Polling error")
+
+        mock_poll_bill.side_effect = mock_poll_bill_coroutine
+
+        with self.assertRaises(Exception):
+            asyncio.run(bill_instance.poll_bill())
+
+        mock_poll_bill.assert_called_once()
+
 if __name__ == "__main__":
     unittest.main()

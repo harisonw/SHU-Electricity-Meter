@@ -119,3 +119,30 @@ if __name__ == "__main__":
         mock_contract.functions.getMeterBill().call.assert_called_once()
         mock_contract.functions.getMeterReadings.call.assert_called_once()
     """
+    
+    """
+        @patch('client.blockchain_client.GenerateReadings.store_readings_obj.store_reading', new_callable=MagicMock)
+    @patch('client.blockchain_client.BlockchainStoreReading', new_callable=MagicMock)
+    def test_generate_reading_failure(self, mock_store_reading, mock_blockchain_store_reading):
+        mock_w3 = MagicMock()
+        mock_contract = MagicMock()
+        mock_app = MagicMock()
+
+        private_key = "0x" + "a" * 64
+        
+        mock_blockchain_store_reading.return_value = MagicMock()
+        
+        readings_instance = GenerateReadings(private_key, mock_w3, mock_contract, mock_app)
+
+        async def mock_fail_store_reading(reading):
+            raise Exception("Store reading failed")
+
+        mock_store_reading.side_effect = mock_fail_store_reading
+
+        generated_reading = readings_instance.generate_reading()
+
+        with self.assertRaises(Exception):
+            asyncio.run(readings_instance.reading_generator())
+
+        mock_store_reading.assert_called_once()
+    """
