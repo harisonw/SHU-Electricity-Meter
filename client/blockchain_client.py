@@ -258,7 +258,7 @@ class BlockchainGetAlerts:
 
     async def handle_grid_alert(self, event):
         alert_message = f"Alert from the grid: {event.args.message}"
-        print(alert_message)
+        logging.info(alert_message)
         self.ui_callback.update_notice_message(alert_message)
 
     async def monitor_grid_alerts(self):
