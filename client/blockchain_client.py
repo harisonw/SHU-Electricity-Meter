@@ -28,15 +28,7 @@ from uuid import uuid4
 
 import customtkinter as ctk
 from eth_account import Account
-from parameters import (
-    ACCOUNTS_DATA,
-    BLOCKCHAIN_URL,
-    CONTRACT_ABI,
-    CONTRACT_ADDRESS,
-    all_account_pairs,
-    first_address,
-    first_private_key,
-)
+from parameters import ACCOUNTS_DATA, BLOCKCHAIN_URL, CONTRACT_ABI, CONTRACT_ADDRESS
 from web3 import Web3
 
 
@@ -186,6 +178,7 @@ class GenerateReadings:
         self.contract = contract
         self.store_readings_obj = BlockchainStoreReading(private_key, w3, contract)
         self.app = app
+        self.backlogs = []
 
     @staticmethod
     def generate_reading():
@@ -193,8 +186,8 @@ class GenerateReadings:
         return random_reading
 
     async def reading_generator(self):
-        MIN_WAIT = 5  # TODO: Change back to 15 and 60 when all testing done
-        MAX_WAIT = 10
+        MIN_WAIT = 1  # TODO: Change back to 15 and 60 when all testing done
+        MAX_WAIT = 2
 
         while True:
 
@@ -216,7 +209,24 @@ class GenerateReadings:
             except ValueError:
                 pass
 
-            asyncio.create_task(self.store_readings_obj.store_reading(reading))
+            try:
+                asyncio.create_task(self.store_readings_obj.store_reading(reading))
+                logging.info(self.backlogs)
+                asyncio.create_task(self.clear_backlogs())
+            except Exception as e:
+                self.backlogs.append(e)
+
+    async def clear_backlogs(self):
+        if len(self.backlogs) > 1:
+            for index in range(self.backlogs):
+                try:
+                    asyncio.create_task(
+                        self.store_readings_obj.store_reading(self.backlogs[index])
+                    )
+                    record = self.backlogs.pop(index)
+                    logging.info("Stored reading from backlog: %s ", str(record))
+                except Exception as e:
+                    print(str(e))
 
     def start_reading_generator(self):
         try:
@@ -225,6 +235,20 @@ class GenerateReadings:
         except Exception as e:
             logging.error(e)
             raise e
+
+
+def generate_existing_readings():
+    initial_set = []
+    for _ in range(12):
+        reading = GenerateReadings.generate_reading()
+        initial_set.append({"uuid_": str(uuid4()), "reading": reading})
+    return initial_set
+
+
+def store_initial_set(initial_set, **blockchain_args):
+    store_readings_obj = BlockchainStoreReading(**blockchain_args)
+    for record in initial_set:
+        store_readings_obj.store_reading(record)
 
 
 class BlockchainGetAlerts:
@@ -396,6 +420,9 @@ if __name__ == "__main__":
     private_key = list(ACCOUNTS_DATA["private_keys"].values())[client_number]
     app = SmartMeterUI()
     w3, contract = get_contract(app)
+
+    initial_set = generate_existing_readings()
+    store_initial_set(initial_set, private_key=private_key, w3=w3, contract=contract)
 
     if w3 and contract:
         alerts_obj = BlockchainGetAlerts(w3, contract, app)
