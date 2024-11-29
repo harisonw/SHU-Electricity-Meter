@@ -51,6 +51,7 @@ def get_contract(app):
         return w3, contract_instance
     except Exception as e:
         app.update_connection_status("error")
+        logging.error(e)
         raise e
 
 
@@ -158,6 +159,7 @@ class BlockchainStoreReading:
             self.contract = contract
             self.acc = Account.from_key(self.private_key)
         except Exception as e:
+            logging.error(e)
             raise e
 
     async def store_reading(self, reading):
@@ -172,6 +174,7 @@ class BlockchainStoreReading:
             ).transact({"from": self.acc.address})
             logging.info("Stored reading: %s with tx: %s", reading, tx.hex())
         except Exception as e:
+            logging.error(e)
             raise e
 
 
@@ -220,6 +223,7 @@ class GenerateReadings:
             asyncio.run(self.reading_generator())
             logging.info("Started reading generator")
         except Exception as e:
+            logging.error(e)
             raise e
 
 
