@@ -31,6 +31,9 @@ from eth_account import Account
 from parameters import ACCOUNTS_DATA, BLOCKCHAIN_URL, CONTRACT_ABI, CONTRACT_ADDRESS
 from web3 import Web3
 
+READING_SCALING_FACTOR = 1000  # Scaled Integer to represent 3dp decimal reading
+BILL_SCALING_FACTOR = 100  # Scaled Integer to represent 2dp decimal price
+
 
 def get_contract(app):
     try:
@@ -78,13 +81,14 @@ class BlockchainGetBill:
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100  # Using Scaled Integer to represent decimal price
+                    / BILL_SCALING_FACTOR  # Using Scaled Integer to represent decimal price
                 )
                 meter_readings = self.contract.functions.getMeterReadings.call(
                     {"from": self.acc.address}
                 )
                 total_usage = (
-                    sum(reading[1] for reading in meter_readings) / 1000
+                    sum(reading[1] for reading in meter_readings)
+                    / READING_SCALING_FACTOR
                 )  # Using Scaled Integer to represent decimal reading
                 total_usage = round(total_usage, 2)
                 logging.info(
@@ -115,11 +119,12 @@ class BlockchainGetBill:
                         self.contract.functions.getMeterBill().call(
                             {"from": self.acc.address}
                         )
-                        / 100  # Using Scaled Integer to represent decimal price
+                        / BILL_SCALING_FACTOR  # Using Scaled Integer to represent decimal price
                     )
 
                     total_usage = (
-                        sum(reading[1] for reading in meter_readings) / 1000
+                        sum(reading[1] for reading in meter_readings)
+                        / READING_SCALING_FACTOR
                     )  # Using Scaled Integer to represent decimal reading
                     total_usage = round(total_usage, 2)
 
@@ -186,8 +191,8 @@ class GenerateReadings:
         return random_reading
 
     async def reading_generator(self):
-        MIN_WAIT = 1  # TODO: Change back to 15 and 60 when all testing done
-        MAX_WAIT = 2
+        MIN_WAIT = 6  # TODO: Change back to 15 and 60 when all testing done
+        MAX_WAIT = 10
 
         while True:
 
@@ -284,7 +289,7 @@ class SmartMeterUI(ctk.CTk):
 
         # Appearance and theme
         self.title("Smart Meter Interface")
-        self.geometry("400x300")
+        self.geometry("533x300")
         # Use native system dark / light mode
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
