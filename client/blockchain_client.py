@@ -162,7 +162,7 @@ class BlockchainStoreReading:
     async def store_reading(self, reading):
         try:
             reading = int(
-                reading * 1000
+                reading * READING_SCALING_FACTOR
             )  # Using Scaled Integer to represent decimal reading
             uuid_ = uuid4()
             # reading being stored with a transaction id
