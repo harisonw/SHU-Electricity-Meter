@@ -18,10 +18,5 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"       # Maximum size of log file
+        max-size: "10m"      
         max-file: "3"
-
-networks:
-  # Declare our private network.  We must declare one for the magic
-  # Docker DNS to work, but otherwise its default settings are fine.
-  network: {}

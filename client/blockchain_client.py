@@ -95,12 +95,12 @@ class BlockchainGetBill:
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100
+                    / 1000
                 )
                 meter_readings = self.contract.functions.getMeterReadings.call(
                     {"from": self.acc.address}
                 )
-                total_usage = sum(reading[1] for reading in meter_readings)
+                total_usage = sum(reading[1] for reading in meter_readings)/1000
                 logging.info(
                     "Received Initial Bill: £%s @ Meter reading: %s kWh",
                     bill,
@@ -127,7 +127,7 @@ class BlockchainGetBill:
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100
+                    / 1000
                 )
                 logging.info(
                     "Received New Bill: £%s @ Meter reading: %s kWh", bill, total_usage
