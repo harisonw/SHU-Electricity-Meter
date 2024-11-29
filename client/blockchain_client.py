@@ -103,26 +103,41 @@ class BlockchainGetBill:
                     f"£{bill:.2f}", f"{total_usage:.2f} kWh"
                 )
             else:
-                meter_readings = self.contract.functions.getMeterReadings.call(
-                    {"from": self.acc.address}
-                )
-                total_usage = (
-                    sum(reading[1] for reading in meter_readings) / 1000
-                )  # Using Scaled Integer to represent decimal reading
-                total_usage = round(total_usage, 2)
-
-                bill = (
-                    self.contract.functions.getMeterBill().call(
-                        {"from": self.acc.address}
-                    )
-                    / 100  # Using Scaled Integer to represent decimal price
+                # Get displayed meter reading
+                displayed_usage = float(
+                    self.ui_callback.usage_label.cget("text")
+                    .split(": ")[1]
+                    .strip()
+                    .split(" ")[0]
                 )
                 logging.info(
-                    "Received New Bill: £%s @ Meter reading: %s kWh", bill, total_usage
+                    "Displayed usage: %s total usage: %s", displayed_usage, total_usage
                 )
-                self.ui_callback.update_main_display(
-                    f"£{bill:.2f}", f"{total_usage:.2f} kWh"
-                )
+                if displayed_usage > total_usage:
+                    meter_readings = self.contract.functions.getMeterReadings.call(
+                        {"from": self.acc.address}
+                    )
+
+                    bill = (
+                        self.contract.functions.getMeterBill().call(
+                            {"from": self.acc.address}
+                        )
+                        / 100  # Using Scaled Integer to represent decimal price
+                    )
+
+                    total_usage = (
+                        sum(reading[1] for reading in meter_readings) / 1000
+                    )  # Using Scaled Integer to represent decimal reading
+                    total_usage = round(total_usage, 2)
+
+                    logging.info(
+                        "Received New Bill: £%s @ Meter reading: %s kWh",
+                        bill,
+                        total_usage,
+                    )
+                    self.ui_callback.update_main_display(
+                        f"£{bill:.2f}", f"{displayed_usage:.2f} kWh"
+                    )
 
             # polling every 0.1 seconds
             await asyncio.sleep(0.1)
@@ -148,7 +163,7 @@ class BlockchainStoreReading:
     async def store_reading(self, reading):
         try:
             reading = int(
-                Decimal(reading) * 1000
+                reading * 1000
             )  # Using Scaled Integer to represent decimal reading
             uuid_ = uuid4()
             # reading being stored with a transaction id
