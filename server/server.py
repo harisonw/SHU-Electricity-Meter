@@ -1,13 +1,33 @@
 import time
 from uuid import uuid4
-
+import random 
 from parameters import ACCOUNTS_DATA, BLOCKCHAIN_URL, CONTRACT_ABI, CONTRACT_ADDRESS
 from web3 import Web3
 
+grid_alerts = [
+    "High power use detected. Reduce consumption if possible.",
+    "Maintenance scheduled: Power outage 2-4 PM.",
+    "Voltage fluctuation detected. Monitoring in progress.",
+    "Conserve energy during peak hours (4-8 PM).",
+    "Grid overload: Reduce usage immediately.",
+    "Power outage reported. Restoration underway.",
+    "Energy use exceeds your set limit. Adjust usage.",
+    "Critical grid event: Load-shedding may occur.",
+    "Renewable surplus detected. Shift usage now.",
+    "Potential hazard detected. Contact support."
+]
+
+
+def select_random_alert():
+    index = random.randint(0, len(grid_alerts)-1)
+    return grid_alerts[index]
+
 
 def send_alert(contract):
-    contract_instance.functions.sendGridAlert(
-        "This is an alert from the blockchain"
+    select_random_alert_text = select_random_alert()
+    print(f"Alert: {select_random_alert_text}")
+    contract.functions.sendGridAlert(
+        select_random_alert_text
     ).transact({"from": example_address})
 
 
@@ -16,6 +36,6 @@ if __name__ == "__main__":
     example_address = Web3.to_checksum_address(list(ACCOUNTS_DATA["addresses"])[1])
     contract_instance = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
     while True:
+        random_sleep_interval = random.randint(1,2)
         send_alert(contract_instance)
-        print("Sending Alert")
-        time.sleep(2)
+        time.sleep(random_sleep_interval)
