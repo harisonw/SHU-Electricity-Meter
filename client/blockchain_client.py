@@ -22,6 +22,7 @@ import sys
 import threading
 import time
 from datetime import datetime
+from decimal import Decimal
 from multiprocessing import Process
 from uuid import uuid4
 
@@ -79,29 +80,20 @@ class BlockchainGetBill:
         logging.info("Polling for bill updates")
         total_usage = None
         while True:
-            displayed_usage_text = app.usage_label.cget("text")
-            try:
-                displayed_usage = (
-                    displayed_usage_text.split(": ")[1].strip().split(" ")[0]
-                )
-                if displayed_usage == "xx.xx":
-                    displayed_usage = None
-                else:
-                    displayed_usage = float(displayed_usage)
-            except Exception as e:
-                logging.error(e)
-
             if total_usage == None:
                 bill = (
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100 # Using Scaled Integer to represent decimal price
+                    / 100  # Using Scaled Integer to represent decimal price
                 )
                 meter_readings = self.contract.functions.getMeterReadings.call(
                     {"from": self.acc.address}
                 )
-                total_usage = sum(reading[1] for reading in meter_readings)
+                total_usage = (
+                    sum(reading[1] for reading in meter_readings) / 1000
+                )  # Using Scaled Integer to represent decimal reading
+                total_usage = round(total_usage, 2)
                 logging.info(
                     "Received Initial Bill: £%s @ Meter reading: %s kWh",
                     bill,
@@ -110,25 +102,20 @@ class BlockchainGetBill:
                 self.ui_callback.update_main_display(
                     f"£{bill:.2f}", f"{total_usage:.2f} kWh"
                 )
-            elif total_usage != displayed_usage:
-                # Await for the blockchain to update the usage
-                while total_usage != displayed_usage:
-                    logging.info(
-                        "Total usage: %s, Displayed usage: %s",
-                        total_usage,
-                        displayed_usage,
-                    )
-                    meter_readings = self.contract.functions.getMeterReadings.call(
-                        {"from": self.acc.address}
-                    )
-                    total_usage = sum(reading[1] for reading in meter_readings)
-                    await asyncio.sleep(0.01)
+            else:
+                meter_readings = self.contract.functions.getMeterReadings.call(
+                    {"from": self.acc.address}
+                )
+                total_usage = (
+                    sum(reading[1] for reading in meter_readings) / 1000
+                )  # Using Scaled Integer to represent decimal reading
+                total_usage = round(total_usage, 2)
 
                 bill = (
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100 # Using Scaled Integer to represent decimal price
+                    / 100  # Using Scaled Integer to represent decimal price
                 )
                 logging.info(
                     "Received New Bill: £%s @ Meter reading: %s kWh", bill, total_usage
@@ -160,8 +147,8 @@ class BlockchainStoreReading:
 
     async def store_reading(self, reading):
         try:
-            reading = (
-                reading * 1000
+            reading = int(
+                Decimal(reading) * 1000
             )  # Using Scaled Integer to represent decimal reading
             uuid_ = uuid4()
             # reading being stored with a transaction id
@@ -184,7 +171,7 @@ class GenerateReadings:
 
     @staticmethod
     def generate_reading():
-        random_reading = random.uniform(0, 10)
+        random_reading = round(random.uniform(0, 10), 3)
         return random_reading
 
     async def reading_generator(self):
@@ -322,7 +309,7 @@ class SmartMeterUI(ctk.CTk):
 
         self.usage_label = ctk.CTkLabel(
             self.middle_frame,
-            text="Used so far today: xx.xx kWh",
+            text="Used so far: xx.xx kWh",
             font=("Arial", 16),
             text_color="white",
         )
@@ -355,13 +342,12 @@ class SmartMeterUI(ctk.CTk):
             self.price_label.configure(text_color="gold")
             logging.error("Failed to connect to blockchain")
 
-
     def update_main_display(self, price, usage):
         self.price_label.configure(text=f"{price}")
-        self.usage_label.configure(text=f"Used so far today: {usage}")
+        self.usage_label.configure(text=f"Used so far: {usage}")
 
     def update_main_usage(self, usage):
-        self.usage_label.configure(text=f"Used so far today: {usage}")
+        self.usage_label.configure(text=f"Used so far: {usage}")
 
     def update_notice_message(self, message):
         if message == "":
@@ -383,11 +369,11 @@ if __name__ == "__main__":
     log_filename = f"Electricity-Meter-{client_number}-{current_date}.log"
     logging.basicConfig(
         filename=log_filename,
-        filemode='a',
+        filemode="a",
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(levelname)s - %(message)s",
     )
-    
+
     private_key = list(ACCOUNTS_DATA["private_keys"].values())[client_number]
     app = SmartMeterUI()
     w3, contract = get_contract(app)
