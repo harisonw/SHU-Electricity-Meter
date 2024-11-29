@@ -423,7 +423,6 @@ if __name__ == "__main__":
     w3, contract = get_contract(app)
 
     initial_set = generate_existing_readings()
-    print(initial_set)
     store_initial_set(initial_set, private_key=private_key, w3=w3, contract=contract)
 
     if w3 and contract:
