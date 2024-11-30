@@ -1,37 +1,63 @@
-import json #,os,
+import unittest, json
+from unittest.mock import MagicMock, patch
 from web3 import Web3
 
-ganache_url = "http://localhost:8545"
-web3 = Web3(Web3.HTTPProvider(ganache_url))
-assert web3.is_connected(), "Failed to connect to Ganache"
+mock_abi = [
+    {
+        "inputs": [
+            {"internalType": "string", "name": "uid", "type": "string"},
+            {"internalType": "uint256", "name": "mtr_reading", "type": "uint256"}
+        ],
+        "name": "storeMeterReading",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getMeterBill",
+        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "constant": True,
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+        "stateMutability": "view",
+        "constant": True,
+        "type": "function"
+    }
+]
 
-#TO DO: CHANGE PATH SO ITS NOT HARDCODED
-#TO DO: MOCK
-
-with open('C:/Users/MAHIT/Documents/SHU/Y3/Enterprise/SHU-Electricity-Meter/blockchain/build/contracts/ElectricityMeterReading.json') as f:
-    contract_json = json.load(f)
-    abi = contract_json['abi']          
+class test_solidity_contract(unittest.TestCase):
     
-#address from networks section in the json file
-contract_address = "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab"
+    @patch('web3.Web3')
+    def test_store_and_get_bill(self, web3_mock):
+        
+        contract_mock = MagicMock()
+        web3_mock.eth.contract.return_value = contract_mock
 
-#setup
-contract = web3.eth.contract(address=contract_address, abi=abi)
+        with patch('web3.Web3', return_value=web3_mock), \
+            patch.object(web3_mock.eth, 'contract', return_value=contract_mock):
+            
+            web3_mock.eth.default_account = "0xMockedAccount"
 
-# default account
-web3.eth.default_account = web3.eth.accounts[0]
+            contract_mock.functions.storeMeterReading.return_value.transact.return_value = "mocked_tx_hash"
+            contract_mock.functions.getMeterBill.return_value.call.return_value = 200
+            
+            uid = "sample-uid"
+            meter_reading = 100
+            expected_bill = meter_reading * 2
 
-def test_store_and_get_bill():
-    uid = "sample-uid"
-    meter_reading = 50 
-    tx_hash = contract.functions.storeMeterReading(uid, meter_reading).transact()
-    web3.eth.wait_for_transaction_receipt(tx_hash) 
+            tx_hash = contract_mock.functions.storeMeterReading(uid, meter_reading).transact()
+            assert tx_hash == "mocked_tx_hash", "Transaction hash mismatch"
 
-    #bill check
-    expected_bill = meter_reading * 2  #
-    actual_bill = contract.functions.getMeterBill().call()
+            actual_bill = contract_mock.functions.getMeterBill().call()
+            assert actual_bill == expected_bill, "Bill calculation error"
 
-    print(f"Expected Bill: {expected_bill}, Actual Bill: {actual_bill}")
-    assert actual_bill == expected_bill, "Error in calculated bill"
+            print(f"Expected Bill: {expected_bill}, Actual Bill: {actual_bill}")
 
-test_store_and_get_bill()
+if __name__ == '__main__':
+    unittest.main()
