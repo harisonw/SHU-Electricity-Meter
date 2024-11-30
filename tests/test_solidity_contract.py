@@ -47,7 +47,7 @@ class test_solidity_contract(unittest.TestCase):
             contract_mock.functions.storeMeterReading.return_value.transact.return_value = "mocked_tx_hash"
             contract_mock.functions.getMeterBill.return_value.call.return_value = 200
             
-            uid = "sample-uid"
+            uid = "uid"
             meter_reading = 100
             expected_bill = meter_reading * 2
 
