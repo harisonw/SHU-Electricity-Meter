@@ -32,14 +32,14 @@ from .parameters import (
     BLOCKCHAIN_URL,
     CONTRACT_ABI,
     CONTRACT_ADDRESS,
-    all_account_pairs,
-    first_address,
-    first_private_key,
 )
 from web3 import Web3
 
 class BlockchainConnectionError(Exception):
     pass
+
+
+    
 
 def get_contract(app):
     try:
@@ -81,6 +81,7 @@ class BlockchainGetBill:
         self.app = app
         
     async def poll_bill(self):
+        logging.info("Polling for bill updates")
         total_usage = None
         while True:
             displayed_usage_text = self.app.usage_label.cget("text")
@@ -100,12 +101,12 @@ class BlockchainGetBill:
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100
+                    / 1000
                 )
                 meter_readings = self.contract.functions.getMeterReadings.call(
                     {"from": self.acc.address}
                 )
-                total_usage = sum(reading[1] for reading in meter_readings)
+                total_usage = sum(reading[1] for reading in meter_readings)/1000
                 logging.info(
                     "Received Initial Bill: £%s @ Meter reading: %s kWh",
                     bill,
@@ -132,7 +133,7 @@ class BlockchainGetBill:
                     self.contract.functions.getMeterBill().call(
                         {"from": self.acc.address}
                     )
-                    / 100
+                    / 1000
                 )
                 logging.info(
                     "Received New Bill: £%s @ Meter reading: %s kWh", bill, total_usage
@@ -148,7 +149,7 @@ class BlockchainGetBill:
         try:
             asyncio.run(self.poll_bill())
         except KeyboardInterrupt:
-            logging.info("Stopping billing polling")
+            logging.warning("Stopping billing polling")
 
 
 class BlockchainStoreReading:
@@ -166,7 +167,7 @@ class BlockchainStoreReading:
         try:
             reading = (
                 reading * 1000
-            )  # Using Scaled Interger to represent decimal reading
+            )  # Using Scaled Integer to represent decimal reading
             uuid_ = uuid4()
             # reading being stored with a transaction id
             tx = self.contract.functions.storeMeterReading(
@@ -174,7 +175,8 @@ class BlockchainStoreReading:
             ).transact({"from": self.acc.address})
             logging.info("Stored reading: %s with tx: %s", reading, tx.hex())
         except Exception as e:
-            raise e
+            logging.error(str(e))
+            raise e 
 
 
 class GenerateReadings:
@@ -185,15 +187,16 @@ class GenerateReadings:
         self.contract = contract
         self.store_readings_obj = BlockchainStoreReading(private_key, w3, contract)
         self.app = app
+        self.backlogs = []
 
     @staticmethod
     def generate_reading():
-        random_reading = random.randint(1, 10)  # TODO: Change to decimal reading
+        random_reading = random.uniform(0, 10)
         return random_reading
 
     async def reading_generator(self):
-        MIN_WAIT = 5  # TODO: Change back to 15 and 60 when all testing done
-        MAX_WAIT = 10
+        MIN_WAIT = 1  # TODO: Change back to 15 and 60 when all testing done
+        MAX_WAIT = 2
 
         while True:
 
@@ -214,15 +217,44 @@ class GenerateReadings:
                 app.update_main_display(previous_price_text, f"{new_usage:.2f} kWh")
             except ValueError:
                 pass
+                
+            try:
+                asyncio.create_task(self.store_readings_obj.store_reading(reading))
+                logging.info(self.backlogs)
+                asyncio.create_task(self.clear_backlogs())
+            except Exception as e: 
+                self.backlogs.append(e)
 
-            asyncio.create_task(self.store_readings_obj.store_reading(reading))
+    async def clear_backlogs(self): 
+        if len(self.backlogs)>1: 
+            for index in range(self.backlogs): 
+                try: 
+                    asyncio.create_task(self.store_readings_obj.store_reading(self.backlogs[index]))
+                    record = self.backlogs.pop(index)
+                    logging.info("Stored reading from backlog: %s ", str(record))
+                except Exception as e: 
+                    print(str(e))
 
     def start_reading_generator(self):
         try:
             asyncio.run(self.reading_generator())
+            logging.info("Started reading generator")
         except Exception as e:
             raise e
 
+
+def generate_existing_readings():
+    initial_set = []
+    for _ in range(12):
+        reading = GenerateReadings.generate_reading()
+        initial_set.append({"uuid_": str(uuid4()), "reading":reading})
+    return initial_set
+
+def store_initial_set(initial_set, **blockchain_args):
+    store_readings_obj = BlockchainStoreReading(**blockchain_args)
+    for record in initial_set: 
+        store_readings_obj.store_reading(record)
+        
 
 class BlockchainGetAlerts:
 
@@ -233,7 +265,7 @@ class BlockchainGetAlerts:
 
     async def handle_grid_alert(self, event):
         alert_message = f"Alert from the grid: {event.args.message}"
-        print(alert_message)
+        logging.warning(alert_message)
         self.ui_callback.update_notice_message(alert_message)
 
     async def monitor_grid_alerts(self):
@@ -246,6 +278,7 @@ class BlockchainGetAlerts:
     def start_grid_alert_monitor(self):
         try:
             asyncio.run(self.monitor_grid_alerts())
+            logging.info("Started monitoring grid alerts")
         except KeyboardInterrupt:
             pass
 
@@ -256,7 +289,7 @@ class SmartMeterUI(ctk.CTk):
 
         # Appearance and theme
         self.title("Smart Meter Interface")
-        self.geometry("650x300")
+        self.geometry("400x300")
         # Use native system dark / light mode
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
@@ -348,13 +381,15 @@ class SmartMeterUI(ctk.CTk):
                 text="Connected to server", text_color="green"
             )
             self.price_label.configure(text_color="green")
-            self.is_connected = True
+            logging.info("Connected to blockchain")
         if status == "error":
             self.connection_status_label.configure(
                 text="Error: Failed to connect to server. Retrying...",
                 text_color="gold",
             )
             self.price_label.configure(text_color="gold")
+            logging.error("Failed to connect to blockchain")
+
 
     def update_main_display(self, price, usage):
         self.price_label.configure(text=f"{price}")
@@ -377,12 +412,23 @@ class SmartMeterUI(ctk.CTk):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
     client_number = int(sys.argv[1])
+
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    log_filename = f"Electricity-Meter-{client_number}-{current_date}.log"
+    logging.basicConfig(
+        filename=log_filename,
+        filemode='a',
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+    
     private_key = list(ACCOUNTS_DATA["private_keys"].values())[client_number]
     app = SmartMeterUI()
     w3, contract = get_contract(app)
+
+    initial_set = generate_existing_readings()
+    store_initial_set(initial_set, private_key=private_key, w3=w3, contract=contract)
 
     if w3 and contract:
         alerts_obj = BlockchainGetAlerts(w3, contract, app)
@@ -402,8 +448,28 @@ if __name__ == "__main__":
         )
 
         alert_thread.start()
-        readings_thread.start()
-        bill_thread.start()
-        connection_monitor_thread.start()
+        if alert_thread.is_alive():
+            logging.info("Alert thread started successfully.")
+        else:
+            logging.error("Alert thread failed to start.")
 
+        readings_thread.start()
+        if readings_thread.is_alive():
+            logging.info("Readings thread started successfully.")
+        else:
+            logging.error("Readings thread failed to start.")
+
+        bill_thread.start()
+        if bill_thread.is_alive():
+            logging.info("Bill thread started successfully.")
+        else:
+            logging.error("Bill thread failed to start.")
+
+        connection_monitor_thread.start()
+        if connection_monitor_thread.is_alive():
+            logging.info("Connection monitor thread started successfully.")
+        else:
+            logging.error("Connection monitor thread failed to start.")
+
+    logging.info("App started with client number: %s", client_number)
     app.mainloop()
