@@ -62,7 +62,7 @@ class TestClientBlockchain(unittest.TestCase):
         self.assertIsNotNone(contract)
         self.mock_app.update_connection_status.assert_called_with("connected")
 
-    # negative test
+    # positive test
     # check connection when web3 is connected
     @patch("client.blockchain_client.Web3")
     def test_check_connection_connected(self, MockWeb3):
