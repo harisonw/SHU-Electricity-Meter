@@ -30,7 +30,6 @@ contract ElectricityMeterReading {
         MeterReading[] memory readings = new MeterReading[](length); 
         for(uint i = 0; i<length; i++){
             MeterReading memory reading = _meterReadings[msg.sender][i];
-            reading.mtr_reading = reading.mtr_reading/SCALING_FACTOR;
             readings[i] = reading;
         }   
         return readings;

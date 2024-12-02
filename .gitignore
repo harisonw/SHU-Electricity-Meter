@@ -1,5 +1,7 @@
 # Blockchain
 node_modules/
+blockchain/deployment_config.json
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
