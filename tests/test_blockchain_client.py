@@ -1,7 +1,12 @@
 import asyncio
 import os
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import (
+    AsyncMock,
+    MagicMock,
+    patch,
+    mock_open
+)
 
 from client.blockchain_client import (
     BlockchainConnectionError,
@@ -37,6 +42,7 @@ class TestClientBlockchain(unittest.TestCase):
     # positive test
     # get_contract works with connection
     @patch("client.blockchain_client.Web3")
+    @patch("builtins.open", mock_open(read_data='{"contract_address": "0x12345"}'))
     def test_get_contract_success(self, MockWeb3):
         """
         test get_contract works correctly when web3 is connected
@@ -56,7 +62,7 @@ class TestClientBlockchain(unittest.TestCase):
         self.assertIsNotNone(contract)
         self.mock_app.update_connection_status.assert_called_with("connected")
 
-    # positive test
+    # negative test
     # check connection when web3 is connected
     @patch("client.blockchain_client.Web3")
     def test_check_connection_connected(self, MockWeb3):
@@ -153,6 +159,7 @@ class TestClientBlockchain(unittest.TestCase):
     # negative test
     # test to see how get_contract is handled
     @patch("client.blockchain_client.Web3")
+    @patch("builtins.open", mock_open())
     def test_get_contract_error_handling(self, MockWeb3):
         """
         test get_contract function when web3 is not connected
@@ -185,14 +192,10 @@ class TestClientBlockchain(unittest.TestCase):
         self.assertEqual(app.connection_status_label.cget("text_color"), "green")
 
     # positive test
-    # simulate handling grid alert
-    @patch(
-        "client.blockchain_client.BlockchainGetAlerts.handle_grid_alert",
-        new_callable=MagicMock,
-    )
-    async def test_handle_grid_alert(self, mock_handle_grid_alert):
+    # handling of grid alrt and integration with UI
+    def test_handle_grid_alert(self):
         """
-        test the handling of grid alerts in BlockchainGetAlerts
+        test the implementation of handle_grid_alert in BlockchainGetAlerts
         checks correct UI message is updated when an alert is received
         """
         alerts_instance = BlockchainGetAlerts(
@@ -202,12 +205,30 @@ class TestClientBlockchain(unittest.TestCase):
         mock_event = MagicMock()
         mock_event.args.message = "Test Alert"
 
-        await alerts_instance.handle_grid_alert(mock_event)
+        async def async_test():
+            await alerts_instance.handle_grid_alert(mock_event)
+            self.mock_ui_callback.update_notice_message.assert_called_with(
+                "Alert from the grid: Test Alert"
+            )
+        asyncio.run(async_test())
 
-        mock_handle_grid_alert.assert_called_once_with(mock_event)
-        self.mock_ui_callback.update_notice_message.assert_called_with(
-            "Alert from the grid: Test Alert"
+    # positive test
+    # checks interaction with the mocked handle_grid_alert method
+    @patch(
+        "client.blockchain_client.BlockchainGetAlerts.handle_grid_alert",
+        new_callable=AsyncMock,
         )
+    def test_handle_grid_alert_mocked(self, mock_handle_grid_alert):
+        """
+        test interaction with mocked handle_grid_alert method in BlockchainGetAlerts
+        """
+        alerts_instance = BlockchainGetAlerts(
+        self.mock_w3, self.mock_contract, self.mock_ui_callback
+    )
+
+        mock_event = MagicMock()
+        asyncio.run(alerts_instance.handle_grid_alert(mock_event))
+        mock_handle_grid_alert.assert_called_once_with(mock_event)
 
     # negative test
     # test to see how connection is handle when web3 is not connected
