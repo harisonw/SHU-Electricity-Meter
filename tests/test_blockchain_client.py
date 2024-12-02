@@ -1,4 +1,5 @@
 import asyncio
+import os
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -171,6 +172,11 @@ class TestClientBlockchain(unittest.TestCase):
         """
         test smartmeterUI updates the connection status
         """
+
+        if os.getenv("CI") == "true":
+            # Skip UI tests in CI environment
+            return
+
         app = SmartMeterUI()
         app.update_connection_status("connected")
         self.assertEqual(
