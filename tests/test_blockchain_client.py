@@ -124,7 +124,7 @@ class TestClientBlockchain(unittest.TestCase):
         test to see it is in the expected range
         """
         generated_reading = GenerateReadings.generate_reading()
-        self.assertTrue(1 <= generated_reading <= 10)
+        self.assertTrue(0 <= generated_reading <= 1)
 
     # positive test
     # simulate storing readings in blockchain
