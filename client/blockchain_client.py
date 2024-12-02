@@ -28,16 +28,18 @@ from uuid import uuid4
 
 import customtkinter as ctk
 from eth_account import Account
-from .parameters import (
+from web3 import Web3
+
+from client.parameters import (
     ACCOUNTS_DATA,
     BLOCKCHAIN_URL,
     CONTRACT_ABI,
     CONTRACT_ADDRESS,
 )
-from web3 import Web3
 
 READING_SCALING_FACTOR = 1000  # Scaled Integer to represent 3dp decimal reading
 BILL_SCALING_FACTOR = 100  # Scaled Integer to represent 2dp decimal price
+
 
 class BlockchainConnectionError(Exception):
     pass
@@ -49,7 +51,7 @@ def get_contract(app):
         if not w3.is_connected():
             app.update_connection_status("error")
             raise BlockchainConnectionError("Failed to connect to the blockchain")
-            #return None, None
+            # return None, None
         contract_instance = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
         app.update_connection_status("connected")
         return w3, contract_instance
@@ -75,14 +77,19 @@ class BlockchainConnectionMonitor:
 
 
 class BlockchainGetBill:
-    def __init__(self, private_key, w3, contract, ui_callback, app):
+    def __init__(
+        self,
+        private_key,
+        w3,
+        contract,
+        ui_callback,
+    ):
         self.w3 = w3
         self.private_key = private_key
         self.contract = contract
         self.acc = Account.from_key(self.private_key)
         self.ui_callback = ui_callback
-        self.app = app
-        
+
     async def poll_bill(self):
         logging.info("Polling for bill updates")
         total_usage = None
@@ -264,7 +271,7 @@ def generate_existing_readings():
 def store_initial_set(initial_set, **blockchain_args):
     store_readings_obj = BlockchainStoreReading(**blockchain_args)
     for record in initial_set:
-        store_readings_obj.store_reading(record)
+        asyncio.run(store_readings_obj.store_reading(record.get("reading")))
 
 
 class BlockchainGetAlerts:

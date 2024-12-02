@@ -1,19 +1,21 @@
-import unittest
 import asyncio
-from unittest.mock import MagicMock, patch, AsyncMock
+import unittest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 from client.blockchain_client import (
-    get_contract,
-    BlockchainConnectionMonitor,
-    BlockchainGetBill,
-    GenerateReadings,
-    BlockchainStoreReading,
     BlockchainConnectionError,
-    SmartMeterUI,
+    BlockchainConnectionMonitor,
     BlockchainGetAlerts,
+    BlockchainGetBill,
+    BlockchainStoreReading,
+    GenerateReadings,
+    SmartMeterUI,
+    get_contract,
 )
 
-#run test with = python -m unittest tests/test_blockchain_client.py
-#all tests = python -m unittest discover -s tests
+# run test with = python -m unittest tests/test_blockchain_client.py
+# all tests = python -m unittest discover -s tests
+
 
 class TestClientBlockchain(unittest.TestCase):
     """
@@ -31,9 +33,9 @@ class TestClientBlockchain(unittest.TestCase):
         self.mock_app = MagicMock()
         self.private_key = "0x" + "a" * 64
 
-    #positive test
-    #get_contract works with connection
-    @patch('client.blockchain_client.Web3')
+    # positive test
+    # get_contract works with connection
+    @patch("client.blockchain_client.Web3")
     def test_get_contract_success(self, MockWeb3):
         """
         test get_contract works correctly when web3 is connected
@@ -41,7 +43,7 @@ class TestClientBlockchain(unittest.TestCase):
         """
         self.mock_w3.is_connected.return_value = True
 
-        #mock contract
+        # mock contract
         contract_mock = MagicMock()
         self.mock_w3.eth.contract.return_value = contract_mock
 
@@ -53,9 +55,9 @@ class TestClientBlockchain(unittest.TestCase):
         self.assertIsNotNone(contract)
         self.mock_app.update_connection_status.assert_called_with("connected")
 
-    #positive test
-    #check connection when web3 is connected
-    @patch('client.blockchain_client.Web3')
+    # positive test
+    # check connection when web3 is connected
+    @patch("client.blockchain_client.Web3")
     def test_check_connection_connected(self, MockWeb3):
         """
         test BlockchainConnectionMonitor when web3 is connected
@@ -65,13 +67,13 @@ class TestClientBlockchain(unittest.TestCase):
 
         monitor = BlockchainConnectionMonitor(self.mock_app, self.mock_w3)
 
-        with patch('time.sleep', return_value=None):
+        with patch("time.sleep", return_value=None):
             monitor.check_connection()
 
         self.mock_app.update_connection_status.assert_called_with("connected")
 
-    #positive test
-    #check BlockchainGetBill is correct
+    # positive test
+    # check BlockchainGetBill is correct
     def test_blockchain_get_bill(self):
         """
         tests input of BlockchainGetBill
@@ -81,21 +83,21 @@ class TestClientBlockchain(unittest.TestCase):
             self.mock_w3,
             self.mock_contract,
             self.mock_ui_callback,
-            self.mock_app
         )
 
         self.assertEqual(bill_instance.private_key, self.private_key)
         self.assertEqual(bill_instance.w3, self.mock_w3)
         self.assertEqual(bill_instance.contract, self.mock_contract)
         self.assertEqual(bill_instance.ui_callback, self.mock_ui_callback)
-        self.assertEqual(bill_instance.app, self.mock_app)
 
-    #positive test
-    #simulate polling for bills
-    @patch('client.blockchain_client.BlockchainGetBill.poll_bill', new_callable=MagicMock)
+    # positive test
+    # simulate polling for bills
+    @patch(
+        "client.blockchain_client.BlockchainGetBill.poll_bill", new_callable=MagicMock
+    )
     def test_poll_bill(self, mock_poll_bill):
         """
-        test poll_bill method in BlockChainGetBill 
+        test poll_bill method in BlockChainGetBill
         mocks poll_bill
         """
         bill_instance = BlockchainGetBill(
@@ -103,7 +105,6 @@ class TestClientBlockchain(unittest.TestCase):
             self.mock_w3,
             self.mock_contract,
             self.mock_ui_callback,
-            self.mock_app
         )
 
         async def mock_poll_bill_coroutine():
@@ -115,8 +116,8 @@ class TestClientBlockchain(unittest.TestCase):
 
         mock_poll_bill.assert_called_once()
 
-    #positive test
-    #gen random readings test
+    # positive test
+    # gen random readings test
     def test_generate_reading(self):
         """
         tests GenerateReadings.generate_reading method
@@ -125,17 +126,18 @@ class TestClientBlockchain(unittest.TestCase):
         generated_reading = GenerateReadings.generate_reading()
         self.assertTrue(1 <= generated_reading <= 10)
 
-    #positive test
-    #simulate storing readings in blockchain
-    @patch('client.blockchain_client.BlockchainStoreReading.store_reading', new_callable=MagicMock)
+    # positive test
+    # simulate storing readings in blockchain
+    @patch(
+        "client.blockchain_client.BlockchainStoreReading.store_reading",
+        new_callable=MagicMock,
+    )
     def test_store_reading(self, mock_store_reading):
         """
         test store_reading method in BlockchainStoreReading
         """
         reading_instance = BlockchainStoreReading(
-            self.private_key,
-            self.mock_w3,
-            self.mock_contract
+            self.private_key, self.mock_w3, self.mock_contract
         )
 
         async def mock_store_reading_coroutine(reading):
@@ -147,9 +149,9 @@ class TestClientBlockchain(unittest.TestCase):
 
         mock_store_reading.assert_called_once_with(5)
 
-    #negative test
-    #test to see how get_contract is handled
-    @patch('client.blockchain_client.Web3')
+    # negative test
+    # test to see how get_contract is handled
+    @patch("client.blockchain_client.Web3")
     def test_get_contract_error_handling(self, MockWeb3):
         """
         test get_contract function when web3 is not connected
@@ -163,29 +165,32 @@ class TestClientBlockchain(unittest.TestCase):
 
         self.mock_app.update_connection_status.assert_called_with("error")
 
-    #positive test
-    #veriify UI updates status
+    # positive test
+    # veriify UI updates status
     def test_update_connection_status_connected(self):
         """
         test smartmeterUI updates the connection status
         """
         app = SmartMeterUI()
         app.update_connection_status("connected")
-        self.assertEqual(app.connection_status_label.cget("text"), "Connected to server")
+        self.assertEqual(
+            app.connection_status_label.cget("text"), "Connected to server"
+        )
         self.assertEqual(app.connection_status_label.cget("text_color"), "green")
 
-    #positive test
-    #simulate handling grid alert
-    @patch('client.blockchain_client.BlockchainGetAlerts.handle_grid_alert', new_callable=MagicMock)
+    # positive test
+    # simulate handling grid alert
+    @patch(
+        "client.blockchain_client.BlockchainGetAlerts.handle_grid_alert",
+        new_callable=MagicMock,
+    )
     async def test_handle_grid_alert(self, mock_handle_grid_alert):
         """
         test the handling of grid alerts in BlockchainGetAlerts
         checks correct UI message is updated when an alert is received
         """
         alerts_instance = BlockchainGetAlerts(
-            self.mock_w3,
-            self.mock_contract,
-            self.mock_ui_callback
+            self.mock_w3, self.mock_contract, self.mock_ui_callback
         )
 
         mock_event = MagicMock()
@@ -196,11 +201,11 @@ class TestClientBlockchain(unittest.TestCase):
         mock_handle_grid_alert.assert_called_once_with(mock_event)
         self.mock_ui_callback.update_notice_message.assert_called_with(
             "Alert from the grid: Test Alert"
-            )
+        )
 
-    #negative test
-    #test to see how connection is handle when web3 is not connected
-    @patch('time.sleep', return_value=None)
+    # negative test
+    # test to see how connection is handle when web3 is not connected
+    @patch("time.sleep", return_value=None)
     def test_check_connection_disconnected(self, mock_sleep):
         """
         test BlockchainConnectionMonitor when web3 is disconnected
@@ -213,25 +218,23 @@ class TestClientBlockchain(unittest.TestCase):
 
         self.mock_app.update_connection_status.assert_called_with("error")
 
-    #negative test
-    #validate private key test
+    # negative test
+    # validate private key test
     def test_invalid_private_key(self):
         """
-        test BlockchainStoreReading with wrong private key 
+        test BlockchainStoreReading with wrong private key
         and error is raised correctly
         """
         private_key = "invalid_key"
 
         with self.assertRaises(ValueError):
-            BlockchainStoreReading(
-                private_key,
-                self.mock_w3,
-                self.mock_contract
-            )
+            BlockchainStoreReading(private_key, self.mock_w3, self.mock_contract)
 
-    #negative test
-    #simulate polling fail
-    @patch('client.blockchain_client.BlockchainGetBill.poll_bill', new_callable=AsyncMock)
+    # negative test
+    # simulate polling fail
+    @patch(
+        "client.blockchain_client.BlockchainGetBill.poll_bill", new_callable=AsyncMock
+    )
     def test_poll_bill_failure(self, mock_poll_bill):
         """
         test poll_bill to see if handles errors correctly
@@ -241,7 +244,6 @@ class TestClientBlockchain(unittest.TestCase):
             self.mock_w3,
             self.mock_contract,
             self.mock_ui_callback,
-            self.mock_app
         )
 
         async def mock_poll_bill_coroutine():
@@ -253,6 +255,7 @@ class TestClientBlockchain(unittest.TestCase):
             asyncio.run(bill_instance.poll_bill())
 
         mock_poll_bill.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
