@@ -36,4 +36,6 @@ cd ..
 
 python -m unittest discover -s tests
 
+check_success "Tests failed."
+
 echo "All processes completed successfully."
