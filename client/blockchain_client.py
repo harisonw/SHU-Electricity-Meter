@@ -28,19 +28,28 @@ from uuid import uuid4
 
 import customtkinter as ctk
 from eth_account import Account
-from parameters import ACCOUNTS_DATA, BLOCKCHAIN_URL, CONTRACT_ABI, CONTRACT_ADDRESS
+from .parameters import (
+    ACCOUNTS_DATA,
+    BLOCKCHAIN_URL,
+    CONTRACT_ABI,
+    CONTRACT_ADDRESS,
+)
 from web3 import Web3
 
 READING_SCALING_FACTOR = 1000  # Scaled Integer to represent 3dp decimal reading
 BILL_SCALING_FACTOR = 100  # Scaled Integer to represent 2dp decimal price
 
+class BlockchainConnectionError(Exception):
+    pass
+
 
 def get_contract(app):
     try:
         w3 = Web3(Web3.HTTPProvider(BLOCKCHAIN_URL, request_kwargs={"timeout": 60}))
-        if not w3.is_connected:
+        if not w3.is_connected():
             app.update_connection_status("error")
-            return None, None
+            raise BlockchainConnectionError("Failed to connect to the blockchain")
+            #return None, None
         contract_instance = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
         app.update_connection_status("connected")
         return w3, contract_instance
@@ -55,23 +64,25 @@ class BlockchainConnectionMonitor:
         self.app = app
         self.w3 = w3
 
-    def check_connection(self):
-        while True:
+    def check_connection(self, iterations=1):
+        while iterations > 0:
             if not self.w3.is_connected():
                 self.app.update_connection_status("error")
             else:
                 self.app.update_connection_status("connected")
             time.sleep(5)
+            iterations -= 1
 
 
 class BlockchainGetBill:
-    def __init__(self, private_key, w3, contract, ui_callback):
+    def __init__(self, private_key, w3, contract, ui_callback, app):
         self.w3 = w3
         self.private_key = private_key
         self.contract = contract
         self.acc = Account.from_key(self.private_key)
         self.ui_callback = ui_callback
-
+        self.app = app
+        
     async def poll_bill(self):
         logging.info("Polling for bill updates")
         total_usage = None
