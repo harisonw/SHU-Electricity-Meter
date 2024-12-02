@@ -205,12 +205,12 @@ class GenerateReadings:
 
     @staticmethod
     def generate_reading():
-        random_reading = round(random.uniform(0, 10), 3)
+        random_reading = round(random.uniform(0, 1), 3)
         return random_reading
 
     async def reading_generator(self):
-        MIN_WAIT = 6  # TODO: Change back to 15 and 60 when all testing done
-        MAX_WAIT = 10
+        MIN_WAIT = 15  # TODO: Change back to 15 and 60 when all testing done
+        MAX_WAIT = 60
 
         while True:
 
