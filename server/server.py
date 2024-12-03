@@ -14,7 +14,8 @@ grid_alerts = [
     "Energy use exceeds your set limit. Adjust usage.",
     "Critical grid event: Load-shedding may occur.",
     "Renewable surplus detected. Shift usage now.",
-    "Potential hazard detected. Contact support."
+    "Potential hazard detected. Contact support.",
+    "" # Empty string to simulate no alert
 ]
 
 
