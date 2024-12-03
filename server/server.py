@@ -36,6 +36,6 @@ if __name__ == "__main__":
     example_address = Web3.to_checksum_address(list(ACCOUNTS_DATA["addresses"])[1])
     contract_instance = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
     while True:
-        random_sleep_interval = random.randint(1,2)
+        random_sleep_interval = random.randint(5,6)
         send_alert(contract_instance)
         time.sleep(random_sleep_interval)

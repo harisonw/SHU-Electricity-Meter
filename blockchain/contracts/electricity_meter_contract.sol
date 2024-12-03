@@ -51,6 +51,15 @@ contract ElectricityMeterReading {
     }
 
     function storeMeterReading(string memory uid, uint256 mtr_reading) public {
+        // Input Validation for ensuring uid and meter reading are valid and not empty
+        require(bytes(uid).length > 0, "UID can not be empty");
+        require(mtr_reading > 0, "Meter reading must be greater than zero");
+
+        // Duplicate readings check
+        for (uint i = 0; i < _meterReadings[msg.sender].length; i++) {
+            require(keccak256(abi.encodePacked(_meterReadings[msg.sender][i].uid)) != keccak256(abi.encodePacked(uid)), "Duplicate reading is not allowed");
+        }
+
         uint256 scaledReading = mtr_reading; // Scale up the meter reading to store as integer
         MeterReading memory reading = MeterReading({uid: uid, mtr_reading: scaledReading });
         _meterReadings[msg.sender].push(reading);
