@@ -72,11 +72,11 @@ class BlockchainConnectionMonitor:
                 self.app.update_connection_status("error")
             else:
                 self.app.update_connection_status("connected")
-            
+
             # Stop flag for testing the loop
             if stop_flag:
                 break
-            
+
             time.sleep(5)
 
 
@@ -213,8 +213,8 @@ class GenerateReadings:
         return random_reading
 
     async def reading_generator(self):
-        MIN_WAIT = 15  # TODO: Change back to 15 and 60 when all testing done
-        MAX_WAIT = 60
+        MIN_WAIT = 6  # TODO: Change back to 15 and 60 when all testing done
+        MAX_WAIT = 7
 
         while True:
 
@@ -253,7 +253,7 @@ class GenerateReadings:
                     record = self.backlogs.pop(index)
                     logging.info("Stored reading from backlog: %s ", str(record))
                 except Exception as e:
-                    print(str(e))
+                    logging.error(str(e))
 
     def start_reading_generator(self):
         try:
