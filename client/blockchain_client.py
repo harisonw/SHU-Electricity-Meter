@@ -66,14 +66,18 @@ class BlockchainConnectionMonitor:
         self.app = app
         self.w3 = w3
 
-    def check_connection(self, iterations=1):
-        while iterations > 0:
+    def check_connection(self, stop_flag=False):
+        while True:
             if not self.w3.is_connected():
                 self.app.update_connection_status("error")
             else:
                 self.app.update_connection_status("connected")
+            
+            # Stop flag for testing the loop
+            if stop_flag:
+                break
+            
             time.sleep(5)
-            iterations -= 1
 
 
 class BlockchainGetBill:

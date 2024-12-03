@@ -69,7 +69,7 @@ class TestClientBlockchain(unittest.TestCase):
         monitor = BlockchainConnectionMonitor(self.mock_app, self.mock_w3)
 
         with patch("time.sleep", return_value=None):
-            monitor.check_connection()
+            monitor.check_connection(stop_flag=True)
 
         self.mock_app.update_connection_status.assert_called_with("connected")
 
@@ -220,7 +220,7 @@ class TestClientBlockchain(unittest.TestCase):
         self.mock_w3.is_connected.return_value = False
 
         monitor = BlockchainConnectionMonitor(self.mock_app, self.mock_w3)
-        monitor.check_connection(iterations=1)
+        monitor.check_connection(stop_flag=True)
 
         self.mock_app.update_connection_status.assert_called_with("error")
 
