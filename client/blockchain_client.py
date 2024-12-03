@@ -213,8 +213,8 @@ class GenerateReadings:
         return random_reading
 
     async def reading_generator(self):
-        MIN_WAIT = 6  # TODO: Change back to 15 and 60 when all testing done
-        MAX_WAIT = 7
+        MIN_WAIT = 15  # TODO: Change back to 15 and 60 when all testing done
+        MAX_WAIT = 60
 
         while True:
 
