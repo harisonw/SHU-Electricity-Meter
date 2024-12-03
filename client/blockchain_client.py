@@ -286,8 +286,8 @@ class BlockchainGetAlerts:
         self.ui_callback = ui_callback
 
     async def handle_grid_alert(self, event):
-        alert_message = f"Alert from the grid: {event.args.message}"
-        logging.warning(alert_message)
+        alert_message = event.args.message
+        logging.warning(f"Alert from the grid: {alert_message}")
         self.ui_callback.update_notice_message(alert_message)
 
     async def monitor_grid_alerts(self):
@@ -424,7 +424,9 @@ class SmartMeterUI(ctk.CTk):
             message = "No current notices"
             self.notice_label.configure(text=message, text_color="grey")
         else:
-            self.notice_label.configure(text=message, text_color="red")
+            self.notice_label.configure(
+                text=f"Alert from the grid: {message}", text_color="red"
+            )
 
     def update_time(self):
         current_time = datetime.now().strftime("%H:%M")

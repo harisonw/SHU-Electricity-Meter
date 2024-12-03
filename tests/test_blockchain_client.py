@@ -1,12 +1,7 @@
 import asyncio
 import os
 import unittest
-from unittest.mock import (
-    AsyncMock,
-    MagicMock,
-    patch,
-    mock_open
-)
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 from client.blockchain_client import (
     BlockchainConnectionError,
@@ -207,9 +202,8 @@ class TestClientBlockchain(unittest.TestCase):
 
         async def async_test():
             await alerts_instance.handle_grid_alert(mock_event)
-            self.mock_ui_callback.update_notice_message.assert_called_with(
-                "Alert from the grid: Test Alert"
-            )
+            self.mock_ui_callback.update_notice_message.assert_called_with("Test Alert")
+
         asyncio.run(async_test())
 
     # positive test
@@ -217,14 +211,14 @@ class TestClientBlockchain(unittest.TestCase):
     @patch(
         "client.blockchain_client.BlockchainGetAlerts.handle_grid_alert",
         new_callable=AsyncMock,
-        )
+    )
     def test_handle_grid_alert_mocked(self, mock_handle_grid_alert):
         """
         test interaction with mocked handle_grid_alert method in BlockchainGetAlerts
         """
         alerts_instance = BlockchainGetAlerts(
-        self.mock_w3, self.mock_contract, self.mock_ui_callback
-    )
+            self.mock_w3, self.mock_contract, self.mock_ui_callback
+        )
 
         mock_event = MagicMock()
         asyncio.run(alerts_instance.handle_grid_alert(mock_event))
