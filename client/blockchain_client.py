@@ -133,9 +133,12 @@ class BlockchainGetBill:
                     "Displayed usage: %s total usage: %s", displayed_usage, total_usage
                 )
                 if displayed_usage > total_usage:
-                    meter_readings = self.contract.functions.getMeterReadings.call(
-                        {"from": self.acc.address}
-                    )
+                    try:
+                        meter_readings = self.contract.functions.getMeterReadings.call(
+                            {"from": self.acc.address}
+                        )
+                    except Exception as e:
+                        logging.error(e)
 
                     bill = (
                         self.contract.functions.getMeterBill().call(
@@ -422,7 +425,7 @@ class SmartMeterUI(ctk.CTk):
     def update_notice_message(self, message):
         if message == "":
             message = "No current notices"
-            self.notice_label.configure(text=message, text_color="grey")
+            self.notice_label.configure(text=message, text_color="white")
         else:
             self.notice_label.configure(
                 text=f"Alert from the grid: {message}", text_color="red"
