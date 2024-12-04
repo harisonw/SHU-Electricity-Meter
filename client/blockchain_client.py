@@ -19,6 +19,7 @@ import json
 import logging
 import random
 import sys
+import textwrap
 import threading
 import time
 from datetime import datetime
@@ -427,9 +428,11 @@ class SmartMeterUI(ctk.CTk):
             message = "No current notices"
             self.notice_label.configure(text=message, text_color="white")
         else:
-            self.notice_label.configure(
-                text=f"Alert from the grid: {message}", text_color="red"
+            max_width = 60
+            wrapped_message = "\n".join(
+                textwrap.wrap(f"Alert from the grid: {message}", width=max_width)
             )
+            self.notice_label.configure(text=wrapped_message, text_color="red")
 
     def update_time(self):
         current_time = datetime.now().strftime("%H:%M")
