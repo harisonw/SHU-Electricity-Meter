@@ -9,10 +9,6 @@ check_success() {
 
 GANACHE_ACCOUNTS_FILE="./docker-config/ganache-data/ganache-accounts.json"
 
-
-echo "Starting Docker Compose..."
-cd ./docker-config
-docker-compose up -d
 echo "Waiting for Ganache to start..."
 while ! docker-compose logs ganache | grep -q "Listening on 0.0.0.0:8545"; do
     echo "Waiting for Ganache..."
