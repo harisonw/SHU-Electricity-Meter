@@ -34,3 +34,11 @@ client should be associated with an existing set of readings.
 -Messages should be formatted using XML, JSON, or YAML.
 -You must use a version control system such as Github. You will be asked to give a link to your shared Github
 repository and we will expect to see commits made by all members of the team
+
+
+
+TO RUN THE CODE PLEASE FOLLOW THE STEPS BELOW: 
+
+- Run the run-docker.sh shell script to start the ganache instance. NOTE: You must have docker installed.
+- Run the run-server.sh shell script to deploy the smart contract to the ganache blockchain instance. This will also start the grid alert emitter script.
+- In a new terminal instance run the run-clients.sh shell script to start 12 instances of the smart meter.
