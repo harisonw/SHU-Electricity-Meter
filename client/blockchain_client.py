@@ -30,12 +30,21 @@ import customtkinter as ctk
 from eth_account import Account
 from web3 import Web3
 
-from client.parameters import (
-    ACCOUNTS_DATA,
-    BLOCKCHAIN_URL,
-    CONTRACT_ABI,
-    CONTRACT_ADDRESS,
-)
+
+try:
+    from client.parameters import (
+        ACCOUNTS_DATA,
+        BLOCKCHAIN_URL,
+        CONTRACT_ABI,
+        CONTRACT_ADDRESS,
+    )
+except Exception as e: 
+    from parameters import (
+        ACCOUNTS_DATA,
+        BLOCKCHAIN_URL,
+        CONTRACT_ABI,
+        CONTRACT_ADDRESS,
+    )
 
 READING_SCALING_FACTOR = 1000  # Scaled Integer to represent 3dp decimal reading
 BILL_SCALING_FACTOR = 100  # Scaled Integer to represent 2dp decimal price
@@ -213,7 +222,7 @@ class GenerateReadings:
         return random_reading
 
     async def reading_generator(self):
-        MIN_WAIT = 15  # TODO: Change back to 15 and 60 when all testing done
+        MIN_WAIT = 15  
         MAX_WAIT = 60
 
         while True:
